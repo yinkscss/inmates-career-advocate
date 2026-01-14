@@ -1,0 +1,143 @@
+# Inmates Career Advocate
+
+Conversational AI agent for job discovery on the inmates.ai platform. This service provides a natural language interface for users to discover and explore job listings.
+
+## Overview
+
+The Career Advocate is a standalone API service that:
+- Provides a conversational chat interface for job discovery
+- Integrates with the inmates-backend API for job data
+- Uses LangChain TypeScript for AI agent capabilities
+- Validates and forwards JWT tokens for authentication
+
+## Architecture
+
+```
+Frontend → Career Advocate API → Inmates Backend API
+```
+
+- **Frontend** calls Career Advocate endpoints (e.g., `POST /api/chat`)
+- **Career Advocate** validates JWT tokens and forwards them to the backend
+- **Backend** returns job data which the agent processes and formats conversationally
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js >= 18.0.0
+- npm or yarn
+- Access to inmates-backend API
+- OpenAI API key (or alternative LLM provider)
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Copy environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Configure `.env` file with your settings:
+   - `BACKEND_API_BASE_URL`: Your inmates-backend API URL
+   - `JWT_SECRET`: Must match the JWT secret used by inmates-backend
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `PORT`: Server port (default: 3001)
+
+### Development
+
+Run in development mode with hot reload:
+```bash
+npm run dev
+```
+
+### Build
+
+Build for production:
+```bash
+npm run build
+```
+
+Run production build:
+```bash
+npm start
+```
+
+## Project Structure
+
+```
+inmates-career-advocate/
+├── src/
+│   ├── server/          # API server (Express)
+│   ├── agent/           # LangChain agent implementation
+│   ├── api/             # Backend API client
+│   ├── services/        # Business logic services
+│   ├── types/           # TypeScript type definitions
+│   └── utils/           # Utility functions
+├── dist/                # Compiled output
+└── package.json
+```
+
+## API Endpoints
+
+### POST /api/chat
+
+Send a message to the conversational agent.
+
+**Request:**
+```json
+{
+  "message": "I'm a software engineer, show me remote jobs"
+}
+```
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+```
+
+**Response:**
+```json
+{
+  "response": "I found 15 remote software engineer positions...",
+  "conversationId": "conv_123",
+  "jobs": [...]
+}
+```
+
+### GET /api/health
+
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-01-27T10:00:00Z",
+  "uptime": 3600
+}
+```
+
+## Development
+
+### Code Quality
+
+- **Linting**: `npm run lint`
+- **Formatting**: `npm run format`
+- **Type Checking**: `npm run type-check`
+
+### Testing
+
+(Testing setup to be added in Phase 6)
+
+## Environment Variables
+
+See `.env.example` for all available configuration options.
+
+## License
+
+Private - Internal use only
