@@ -46,18 +46,52 @@
   - Begin Phase 2: Backend API Integration
 
 ### Phase 2: Backend API Integration
-- **Status:** pending
+- **Status:** ✅ COMPLETE
+- **Started:** 2025-01-27
+- **Completed:** 2025-01-27
 - Actions taken:
-  -
+  - Created comprehensive type definitions (job.types.ts, query.types.ts, api.types.ts)
+  - Implemented BackendApiClient with axios, error handling, and interceptors
+  - Implemented JobsApiClient with searchJobs and getJobById methods
+  - Created authentication utilities (verifyToken, extractTokenFromHeader)
+  - Updated health check endpoint to test backend connectivity
+  - Verified TypeScript compilation passes
 - Files created/modified:
-  -
+  - `src/types/job.types.ts` (created - JobListing, PaginatedJobsResponse)
+  - `src/types/query.types.ts` (created - GetJobsQueryDto, enums)
+  - `src/types/api.types.ts` (created - ApiError, HealthCheckResponse)
+  - `src/api/client.ts` (created - BackendApiClient class)
+  - `src/api/jobs-api.ts` (created - JobsApiClient implementation)
+  - `src/api/auth.ts` (created - JWT utilities)
+  - `src/server/routes/health.routes.ts` (updated - backend health check)
+- Next steps:
+  - Begin Phase 3: Natural Language to Query Mapping
 
 ### Phase 3: Natural Language to Query Mapping
-- **Status:** pending
+- **Status:** ✅ COMPLETE
+- **Started:** 2025-01-27
+- **Completed:** 2025-01-27
 - Actions taken:
-  -
+  - Implemented intent extraction using LangChain with structured output (Zod)
+  - Created query normalization to match backend enum values
+  - Built query builder utility with extractIntent and normalizeIntent
+  - Added test script for query builder verification
+  - Verified TypeScript compilation
 - Files created/modified:
-  -
+  - `src/utils/query-builder.ts` (created - intent extraction and query building)
+  - `src/test-query-builder.ts` (created - test script)
+  - `package.json` (updated - added test:query-builder script)
+- Implementation details:
+  - Uses ChatOpenAI with withStructuredOutput for intent extraction
+  - Zod schema for type-safe intent extraction
+  - Handles salary conversion (text to numeric)
+  - Maps work mode variations (remote/WFH → Remote)
+  - Maps job type variations (full-time/FT → Full-time)
+  - Maps experience levels (junior/jr → Junior, etc.)
+  - Combines searchTerm and keywords into single searchTerm
+  - Default pagination and sorting applied
+- Next steps:
+  - Begin Phase 4: LangChain Agent Implementation
 
 ### Phase 4: LangChain Agent Implementation
 - **Status:** pending
@@ -102,11 +136,11 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 1 - Project Setup & Infrastructure |
-| Where am I going? | Complete Phase 1, then move to Phase 2 (Backend API Integration) |
-| What's the goal? | Set up TypeScript project infrastructure for Career Advocate API service |
-| What have I learned? | See findings.md - Backend API structure, LangChain patterns, technical decisions |
-| What have I done? | Created planning files, reviewed roadmap and backend structure |
+| Where am I? | Phase 3 - Natural Language to Query Mapping (✅ COMPLETE) |
+| Where am I going? | Phase 4: LangChain Agent Implementation |
+| What's the goal? | Build conversational AI agent for job discovery using natural language |
+| What have I learned? | See findings.md - Backend API structure, LangChain patterns, API response envelope, query building |
+| What have I done? | Completed Phases 1-3: Setup, API Integration, Query Builder. All tests passing |
 
 ---
 *Update after completing each phase or encountering errors*

@@ -4,7 +4,7 @@
 Set up the TypeScript project infrastructure for the Inmates Career Advocate standalone API service, including project structure, dependencies, and configuration files.
 
 ## Current Phase
-Phase 2: Backend API Integration
+Phase 4: LangChain Agent Implementation
 
 ## Phases
 
@@ -23,24 +23,27 @@ Phase 2: Backend API Integration
 - **Status:** ✅ COMPLETE
 
 ### Phase 2: Backend API Integration
-- [ ] Implement API client for backend calls
-- [ ] Implement jobs API integration
-- [ ] Set up authentication utilities
-- [ ] Create type definitions
-- **Status:** in_progress
+- [x] Implement API client for backend calls
+- [x] Implement jobs API integration
+- [x] Set up authentication utilities
+- [x] Create type definitions
+- [x] Update health check to use backend API client
+- [x] Fix API response envelope handling (success/data wrapper)
+- **Status:** ✅ COMPLETE
 
 ### Phase 3: Natural Language to Query Mapping
-- [ ] Implement intent extraction
-- [ ] Implement query normalization
-- [ ] Create query builder utility
-- **Status:** pending
+- [x] Implement intent extraction with LangChain structured output
+- [x] Implement query normalization
+- [x] Create query builder utility
+- [x] Test script created for verification
+- **Status:** ✅ COMPLETE
 
 ### Phase 4: LangChain Agent Implementation
 - [ ] Set up LangChain agent
 - [ ] Implement search_jobs tool
 - [ ] Implement get_job_details tool
 - [ ] Create agent prompts
-- **Status:** pending
+- **Status:** pending (next phase)
 
 ### Phase 5: Response Generation & Formatting
 - [ ] Implement response formatter
@@ -78,7 +81,9 @@ Phase 2: Backend API Integration
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-|       |         |            |
+| Backend API response wrapped in envelope | 1 | Added ApiEnvelope<T> type and unwrap response.data |
+| JWT token format invalid | 1 | Added token cleaning (trim, remove quotes) |
+| SearchTerm duplication (keywords + searchTerm) | 1 | Added deduplication logic using Set |
 
 ## Notes
 - Following LangChain TypeScript skill patterns

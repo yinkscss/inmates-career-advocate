@@ -198,7 +198,9 @@ This roadmap outlines the implementation plan for building a conversational AI a
 - ✅ TypeScript compilation verified (type-check passes)
 - ✅ README.md with project documentation
 
-## Phase 2: Backend API Integration
+## Phase 2: Backend API Integration ✅ COMPLETE
+
+**Status**: ✅ Complete - All API integration tasks finished, types defined, client implemented
 
 ### 2.1 API Client Implementation
 - **File**: `src/api/client.ts`
@@ -231,7 +233,32 @@ This roadmap outlines the implementation plan for building a conversational AI a
   - `PaginatedJobsResponse` - Response with pagination metadata
   - `JobFilters` - Internal representation of filters
 
-## Phase 3: Natural Language to Query Mapping
+**Phase 2 Completion Summary:**
+- ✅ Created comprehensive type definitions matching backend structure
+  - `JobListing` interface matches `JobResponseDto`
+  - `GetJobsQueryDto` with all query parameters and enums
+  - `PaginatedJobsResponse` with meta and links
+  - `ApiError` and `HealthCheckResponse` types
+- ✅ Implemented `BackendApiClient` class with:
+  - Axios-based HTTP client
+  - Bearer token authentication
+  - Request/response interceptors
+  - Comprehensive error handling
+  - Health check method
+- ✅ Implemented `JobsApiClient` with:
+  - `searchJobs()` method with full filter support
+  - `getJobById()` method
+  - Proper query parameter building
+- ✅ Created authentication utilities:
+  - `verifyToken()` - JWT verification
+  - `extractTokenFromHeader()` - Token extraction
+  - `getUserIdFromToken()` - User ID extraction
+- ✅ Updated health check endpoint to test backend connectivity
+- ✅ All TypeScript compilation verified
+
+## Phase 3: Natural Language to Query Mapping ✅ COMPLETE
+
+**Status**: ✅ Complete - Intent extraction and query normalization implemented
 
 ### 3.1 Intent Extraction
 - **File**: `src/utils/query-builder.ts`
@@ -256,6 +283,26 @@ This roadmap outlines the implementation plan for building a conversational AI a
   - Work modes: Map to `WorkModeEnum` (REMOTE, ONSITE, HYBRID)
   - Experience levels: Map to "Junior", "Mid", "Senior"
   - Salary: Convert text to numeric values (e.g., "80k" → 80000)
+
+**Phase 3 Completion Summary:**
+- ✅ Implemented intent extraction using LangChain with structured output
+  - Uses `ChatOpenAI.withStructuredOutput()` with Zod schema
+  - Extracts: searchTerm, location, salaryMin/Max, jobType, workMode, experienceLevel, keywords
+  - Low temperature (0.1) for deterministic extraction
+- ✅ Created query normalization function
+  - Maps work mode variations (remote/WFH → Remote)
+  - Maps job type variations (full-time/FT → Full-time)
+  - Maps experience levels (junior/jr → Junior, senior/sr → Senior)
+  - Converts salary text to numeric values
+  - Combines searchTerm and keywords
+  - Applies default pagination and sorting
+- ✅ Built main query builder function
+  - `buildQueryFromMessage()` - converts natural language to GetJobsQueryDto
+  - `extractIntent()` - LLM-based intent extraction
+  - `normalizeIntent()` - normalizes to backend query structure
+  - `buildQueryFromFilters()` - programmatic query building
+- ✅ Created test script for verification
+- ✅ All TypeScript compilation verified
 
 ## Phase 4: LangChain Agent Implementation
 

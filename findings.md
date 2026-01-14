@@ -45,6 +45,9 @@
 | TypeScript ESM module resolution | Used .js extensions in imports (TypeScript requirement for ESM) |
 | Missing controllers directory | Created src/controllers/ directory |
 | TypeScript unused parameter warnings | Prefixed unused parameters with `_` (standard convention) |
+| Backend API response wrapped in envelope | Added ApiEnvelope<T> type and unwrap response.data in jobs-api.ts |
+| JWT token format issues | Added token cleaning (trim, remove quotes) and better error messages |
+| Token extraction from curl response | Created extract-token.ts helper script |
 
 ## Resources
 - Roadmap: `inmates-career-advocate/roadmap.md`
@@ -65,6 +68,25 @@
 - ✅ Added authentication middleware skeleton
 - ✅ Created health check endpoint
 - ✅ Project ready for dependency installation
+
+## Phase 2 Completion Summary
+- ✅ Created comprehensive type definitions matching backend structure
+- ✅ Implemented BackendApiClient with axios, error handling, and interceptors
+- ✅ Implemented JobsApiClient with searchJobs and getJobById methods
+- ✅ Created JWT authentication utilities
+- ✅ Updated health check to test backend connectivity
+- ✅ All TypeScript types match backend DTOs exactly
+- ✅ Error handling with proper error types
+- ✅ Fixed API response envelope handling (backend wraps responses in { success, data })
+- ✅ API communication verified and working
+- ✅ Ready for Phase 3: Natural Language to Query Mapping
+
+## Phase 3 Implementation Summary
+- ✅ Implemented intent extraction using LangChain with structured output (Zod schemas)
+- ✅ Created query normalization to match backend enum values
+- ✅ Built query builder utility with extractIntent and normalizeIntent functions
+- ✅ Added test script for query builder verification
+- ✅ Uses OpenAI gpt-4o-mini with low temperature (0.1) for deterministic extraction
 
 ---
 *Update this file after every 2 view/browser/search operations*

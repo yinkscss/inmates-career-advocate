@@ -130,9 +130,36 @@ Health check endpoint.
 - **Formatting**: `npm run format`
 - **Type Checking**: `npm run type-check`
 
+### Testing API Connection
+
+Test the connection to the inmates-backend API:
+
+```bash
+npm run test:api
+```
+
+This script will:
+1. Test backend connectivity
+2. Verify JWT token (if `TEST_JWT_TOKEN` is set in `.env`)
+3. Test job search API
+4. Test job retrieval by ID (if `TEST_JOB_ID` is set)
+5. Test filtered search
+
+**Setup for testing:**
+1. Ensure your `.env` file has:
+   - `BACKEND_API_BASE_URL` - Your backend API URL
+   - `JWT_SECRET` - Must match backend JWT secret
+   - `TEST_JWT_TOKEN` (optional) - A valid JWT token for testing
+   - `TEST_JOB_ID` (optional) - A valid job ID for testing
+
+2. Get a JWT token:
+   - Log in through the frontend or backend auth endpoint
+   - Copy the access token
+   - Add it to `.env` as `TEST_JWT_TOKEN`
+
 ### Testing
 
-(Testing setup to be added in Phase 6)
+(Unit and integration tests to be added in Phase 6)
 
 ## Environment Variables
 
