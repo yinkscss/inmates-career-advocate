@@ -15,6 +15,7 @@ export interface JobListing {
   salaryMax?: number | null;
   salaryMin?: number | null;
   jobType: string;
+  workMode?: string; // "Remote" | "On-site" | "Hybrid"
   tags: string[];
   createdAt: Date | string;
   updatedAt: Date | string;

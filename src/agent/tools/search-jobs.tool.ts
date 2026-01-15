@@ -1,7 +1,140 @@
 /**
  * Search Jobs Tool
  * LangChain tool for searching jobs via backend API
- * (To be implemented in Phase 4)
  */
 
-export {};
+import { DynamicStructuredTool } from '@langchain/core/tools';
+import { z } from 'zod';
+import { jobsApiClient } from '../../api/jobs-api.js';
+import { buildQueryFromMessage, buildQueryFromFilters } from '../../utils/query-builder.js';
+import { GetJobsQueryDto, WorkMode } from '../../types/query.types.js';
+
+// Schema with nullable() for OpenAI structured outputs compatibility
+const SearchJobsInputSchema = z.object({
+  query: z.string().nullable().optional(),
+  searchTerm: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  salaryMin: z.number().nullable().optional(),
+  salaryMax: z.number().nullable().optional(),
+  jobType: z.string().nullable().optional(),
+  workMode: z.string().nullable().optional(),
+  experienceLevel: z.string().nullable().optional(),
+  page: z.number().nullable().optional(),
+  limit: z.number().nullable().optional(),
+});
+
+/**
+ * Create search jobs tool with JWT token
+ * The tool accepts either natural language or structured filters
+ */
+export function createSearchJobsTool(token: string) {
+  // @ts-expect-error - TypeScript deep instantiation issue with complex Zod schemas
+  return new DynamicStructuredTool({
+    name: 'search_jobs',
+    description: `Search for job listings from the inmates.ai job database.
+    
+Use this tool when users ask about:
+- Finding jobs (e.g., "show me software engineer jobs", "find remote positions")
+- Searching by role, skills, location, salary, or other criteria
+- Browsing available job opportunities
+
+The tool accepts either:
+1. Natural language query (use 'query' parameter) - e.g., "remote Python developer jobs"
+2. Structured filters (use specific parameters) - for precise searches
+
+Always use this tool to retrieve job data. Never make up or hallucinate job listings.`,
+    schema: SearchJobsInputSchema,
+    func: async (input) => {
+      try {
+        let query: GetJobsQueryDto;
+
+        // If 'query' is provided, treat it as natural language
+        if (input.query) {
+          query = await buildQueryFromMessage(input.query);
+        } else {
+          // Otherwise, use structured filters
+          const filters: Partial<GetJobsQueryDto> = {};
+          
+          if (input.searchTerm) filters.searchTerm = input.searchTerm;
+          if (input.location) filters.location = input.location;
+          if (input.salaryMin !== undefined) filters.salaryMin = input.salaryMin;
+          if (input.salaryMax !== undefined) filters.salaryMax = input.salaryMax;
+          if (input.jobType) filters.jobType = input.jobType;
+          if (input.workMode) filters.workMode = input.workMode as WorkMode;
+          if (input.experienceLevel) filters.experienceLevel = input.experienceLevel;
+          if (input.page !== undefined) filters.page = input.page;
+          if (input.limit !== undefined) filters.limit = input.limit;
+
+          query = buildQueryFromFilters(filters);
+        }
+
+        // Call the backend API
+        let result;
+        try {
+          result = await jobsApiClient.searchJobs(query, token);
+        } catch (apiError) {
+          // Handle API errors gracefully
+          const errorMsg = apiError instanceof Error ? apiError.message : 'Unknown API error';
+          return JSON.stringify({
+            success: false,
+            error: `Backend API error: ${errorMsg}`,
+            totalJobs: 0,
+            jobsFound: 0,
+            jobs: [],
+            message: 'Unable to connect to job database. Please try again later.',
+          });
+        }
+
+        // Check if we got results
+        if (!result || !result.data || result.data.length === 0) {
+          return JSON.stringify({
+            success: true,
+            totalJobs: result?.meta?.totalItems || 0,
+            jobsFound: 0,
+            message: 'No jobs found matching the criteria',
+            jobs: [],
+          });
+        }
+
+        // Format response for the agent
+        return JSON.stringify({
+          success: true,
+          totalJobs: result.meta.totalItems,
+          jobsFound: result.data.length,
+          page: result.meta.currentPage,
+          totalPages: result.meta.totalPages,
+          jobs: result.data.map((job) => ({
+            id: job._id,
+            source: job.source,
+            title: job.title,
+            company: job.company,
+            location: job.location || 'Not specified',
+            workMode: (job.workMode as string) || 'Not specified',
+            jobType: job.jobType,
+            salaryRange: job.salaryMin && job.salaryMax
+              ? `$${job.salaryMin.toLocaleString()}-$${job.salaryMax.toLocaleString()}`
+              : job.salaryMin
+                ? `$${job.salaryMin.toLocaleString()}+`
+                : job.salaryMax
+                  ? `Up to $${job.salaryMax.toLocaleString()}`
+                  : 'Not specified',
+            tags: job.tags,
+            url: job.url,
+            description: job.description.substring(0, 200) + '...', // Truncate for tool response
+          })),
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        // Return a clear error message that the agent can understand
+        return JSON.stringify({
+          success: false,
+          error: errorMessage,
+          totalJobs: 0,
+          jobsFound: 0,
+          jobs: [],
+          message: `Unable to search jobs: ${errorMessage}. Please check your connection or try again.`,
+        });
+      }
+    },
+  });
+}

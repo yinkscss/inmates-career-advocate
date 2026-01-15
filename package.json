@@ -16,10 +16,12 @@
     "clean": "rm -rf dist",
     "test:api": "tsx src/test-api.ts",
     "test:query-builder": "tsx src/test-query-builder.ts",
+    "test:agent": "tsx src/test-agent.ts",
     "extract-token": "tsx src/extract-token.ts"
   },
   "dependencies": {
     "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.74",
     "@langchain/openai": "^0.3.0",
     "axios": "^1.7.0",
     "cors": "^2.8.5",

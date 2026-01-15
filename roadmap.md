@@ -304,13 +304,15 @@ This roadmap outlines the implementation plan for building a conversational AI a
 - ✅ Created test script for verification
 - ✅ All TypeScript compilation verified
 
-## Phase 4: LangChain Agent Implementation
+## Phase 4: LangChain Agent Implementation ✅ COMPLETE
+
+**Status**: ✅ Complete - Agent, tools, and prompts implemented
 
 ### 4.1 Agent Setup
 - **File**: `src/agent/job-discovery-agent.ts`
 - **Agent Type**: Tool-calling agent (ReAct pattern)
 - **Configuration**:
-  - Model: GPT-4o-mini or Claude 3 Haiku (cost-effective, fast)
+  - Model: GPT-4o-mini (cost-effective, fast)
   - Temperature: 0.1 (deterministic, grounded responses)
   - System prompt: Emphasize grounding, no hallucinations
   - Max iterations: 10 (prevent infinite loops)
@@ -358,6 +360,30 @@ This roadmap outlines the implementation plan for building a conversational AI a
   - No hallucinations: "If no jobs match, say so clearly"
   - Conversational tone: "Be helpful and natural, but always truthful"
   - Application guidance: "Explain how to apply, but do not initiate applications"
+
+**Phase 4 Completion Summary:**
+- ✅ Implemented LangChain ReAct agent using `createReactAgent` from @langchain/langgraph/prebuilt
+  - Uses GPT-4o-mini with temperature 0.1 for deterministic responses
+  - System prompt emphasizes grounding and no hallucinations
+  - Message modifier includes core principles
+- ✅ Created `search_jobs` tool with DynamicStructuredTool
+  - Accepts natural language queries (uses query builder) or structured filters
+  - Calls backend API via jobsApiClient
+  - Returns formatted JSON with job summaries
+  - Handles pagination and result formatting
+- ✅ Created `get_job_details` tool
+  - Retrieves full job information by ID
+  - Returns comprehensive job details including description, requirements, application URL
+- ✅ Created comprehensive agent prompts
+  - SYSTEM_PROMPT with grounding principles and tool usage guidelines
+  - MESSAGE_MODIFIER for agent behavior
+  - Emphasizes truthfulness and conversational tone
+- ✅ Built AgentService for orchestration
+  - `processMessage()` - main entry point for agent execution
+  - Extracts jobs from tool results automatically
+  - Handles conversation history
+- ✅ Created test script for agent verification
+- ✅ All TypeScript compilation verified (with @ts-expect-error for known LangChain type limitations)
 
 ## Phase 5: Response Generation & Formatting
 

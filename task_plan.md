@@ -4,7 +4,7 @@
 Set up the TypeScript project infrastructure for the Inmates Career Advocate standalone API service, including project structure, dependencies, and configuration files.
 
 ## Current Phase
-Phase 4: LangChain Agent Implementation
+Phase 5: Response Generation & Formatting
 
 ## Phases
 
@@ -39,11 +39,13 @@ Phase 4: LangChain Agent Implementation
 - **Status:** ✅ COMPLETE
 
 ### Phase 4: LangChain Agent Implementation
-- [ ] Set up LangChain agent
-- [ ] Implement search_jobs tool
-- [ ] Implement get_job_details tool
-- [ ] Create agent prompts
-- **Status:** pending (next phase)
+- [x] Set up LangChain agent
+- [x] Implement search_jobs tool
+- [x] Implement get_job_details tool
+- [x] Create agent prompts
+- [x] Create agent service for orchestration
+- [x] Create test script for agent
+- **Status:** ✅ COMPLETE
 
 ### Phase 5: Response Generation & Formatting
 - [ ] Implement response formatter
@@ -84,6 +86,8 @@ Phase 4: LangChain Agent Implementation
 | Backend API response wrapped in envelope | 1 | Added ApiEnvelope<T> type and unwrap response.data |
 | JWT token format invalid | 1 | Added token cleaning (trim, remove quotes) |
 | SearchTerm duplication (keywords + searchTerm) | 1 | Added deduplication logic using Set |
+| TypeScript deep instantiation errors with DynamicStructuredTool | 1 | Added @ts-expect-error comments (known TypeScript limitation) |
+| Message type compatibility issues | 1 | Fixed type guards and message format conversion |
 
 ## Notes
 - Following LangChain TypeScript skill patterns
