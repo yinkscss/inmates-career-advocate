@@ -88,6 +88,7 @@ Phase 5: Response Generation & Formatting
 | SearchTerm duplication (keywords + searchTerm) | 1 | Added deduplication logic using Set |
 | TypeScript deep instantiation errors with DynamicStructuredTool | 1 | Added @ts-expect-error comments (known TypeScript limitation) |
 | Message type compatibility issues | 1 | Fixed type guards and message format conversion |
+| Structured filters ignored when query parameter present | 1 | Implemented filter merging logic to preserve explicit structured filters |
 
 ## Notes
 - Following LangChain TypeScript skill patterns

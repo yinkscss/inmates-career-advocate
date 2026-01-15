@@ -1,92 +1,72 @@
-# Findings & Decisions
+# Findings
 
-## Requirements
-- Build conversational AI agent for job discovery using natural language
-- Standalone API service that frontend can call
-- Integrates with existing inmates-backend API for job data
-- Uses LangChain TypeScript for agent implementation
-- Must be grounded in backend data (no hallucinations)
-- Session-scoped memory only (no long-term persistence)
+## Backend Job Filtering Architecture
 
-## Research Findings
+### Backend API (`inmates-backend`)
+- **Endpoint**: `GET /jobs/all-jobs`
+- **Query Parameters Supported**: 
+  - `searchTerm` - Text search in title, company, description
+  - `location` - Location filter (regex match)
+  - `salaryMin` - Minimum salary in USD
+  - `salaryMax` - Maximum salary in USD
+  - `jobType` - Job type (Full-time, Part-time, Contract, Freelance)
+  - `workMode` - Work mode (Remote, On-site, Hybrid)
+  - `experienceLevel` - Experience level (Junior, Mid, Senior)
+  - `sortBy` - Sort field (createdAt, salaryMax, salaryMin, title, company)
+  - `sortOrder` - Sort order (asc, desc)
+  - `page` - Page number
+  - `limit` - Items per page
+  - `startDate` - Start date filter
+  - `endDate` - End date filter
 
-### Backend API Structure
-- **Jobs Endpoint**: `GET /jobs/all-jobs` with query parameters:
-  - `searchTerm`, `location`, `salaryMin`, `salaryMax`, `jobType`, `workMode`, `experienceLevel`, `page`, `limit`, `sortBy`, `sortOrder`
-- **Job Details**: `GET /jobs/:id`
-- **Authentication**: JWT Bearer token required
-- **Caching**: Redis with 30-day TTL via JobCacheService
+- **Filtering Mechanism**: 
+  - Server-side filtering via MongoDB queries
+  - `JobQueryBuilderService.buildQuery()` builds MongoDB query from DTO
+  - Filters are applied at database level, NOT client-side
+  - Default date filter: last 30 days if no startDate provided
 
-### Job Entity Structure
-- Fields: `source`, `title`, `company`, `description`, `url`, `logo`, `location`, `salaryMin`, `salaryMax`, `jobType`, `workMode`, `tags`, `createdAt`, `updatedAt`
-- Text search index on `title` and `description`
+### Frontend Implementation (`Inmate-FrontEnd`)
+- **Query Building**: Frontend builds query string from filters
+- **Example**: `/jobs/all-jobs?searchTerm=Python&salaryMin=100000&experienceLevel=Senior`
+- **Location**: `JobsContext.jsx` lines 72-86 builds `URLSearchParams` from filters
+- **Filter Mapping**: Frontend maps UI filters to backend query parameters
 
-### LangChain TypeScript Patterns
-- Use `@langchain/core` for core types
-- Use `@langchain/openai` for OpenAI integration
-- Use `createReactAgent` or custom agent with tools
-- Tools should return structured data
-- Agent should use low temperature (0.1) for deterministic responses
+## Current Issue: Agent Not Passing Query Parameters
 
-## Technical Decisions
-| Decision | Rationale |
-|----------|-----------|
-| Express for API server | More common, easier to find examples, good middleware ecosystem |
-| OpenAI gpt-4o-mini | Cost-effective ($0.15/$0.60 per 1M tokens), fast, good tool-calling |
-| In-memory session storage (MVP) | Simpler setup, can migrate to Redis for production |
-| TypeScript strict mode | Better type safety, catches errors early |
-| Zod for validation | Type-safe schema validation, works well with TypeScript |
-| Axios for HTTP client | Reliable, good TypeScript support, easy error handling |
+### Problem
+From test logs, the agent is calling `/jobs/all-jobs` without query parameters:
+```
+[API] GET /jobs/all-jobs
+```
 
-## Issues Encountered
-| Issue | Resolution |
-|-------|------------|
-| .env.example file filtered by gitignore | Created manually, will be tracked in git |
-| TypeScript ESM module resolution | Used .js extensions in imports (TypeScript requirement for ESM) |
-| Missing controllers directory | Created src/controllers/ directory |
-| TypeScript unused parameter warnings | Prefixed unused parameters with `_` (standard convention) |
-| Backend API response wrapped in envelope | Added ApiEnvelope<T> type and unwrap response.data in jobs-api.ts |
-| JWT token format issues | Added token cleaning (trim, remove quotes) and better error messages |
-| Token extraction from curl response | Created extract-token.ts helper script |
+Expected behavior for "Show me senior Python jobs paying over $100k":
+```
+[API] GET /jobs/all-jobs?searchTerm=Python&experienceLevel=Senior&salaryMin=100000
+```
 
-## Resources
-- Roadmap: `inmates-career-advocate/roadmap.md`
-- Requirements: `inmates-career-advocate/requirements.md`
-- LangChain Skill: `.claude/skills/langchain-typescript/SKILL.md`
-- Backend API: `inmates-backend/src/jobs/controllers/jobs.controller.ts`
-- Job Entity: `inmates-backend/src/jobs/entities/job.entity.ts`
+### Root Cause Analysis
 
-## Visual/Browser Findings
-- N/A - Working from codebase analysis
+1. **Query Builder IS Working**: 
+   - `buildQueryFromMessage()` uses LLM to extract intent
+   - `normalizeIntent()` converts to `GetJobsQueryDto`
+   - Should extract: `searchTerm: "Python"`, `experienceLevel: "Senior"`, `salaryMin: 100000`
 
-## Phase 1 Completion Summary
-- ✅ Created complete TypeScript project structure
-- ✅ Set up Express server with routes and middleware
-- ✅ Configured ESLint, Prettier, and TypeScript
-- ✅ Created all placeholder files for future phases
-- ✅ Set up configuration management system
-- ✅ Added authentication middleware skeleton
-- ✅ Created health check endpoint
-- ✅ Project ready for dependency installation
+2. **API Client IS Building Params**:
+   - `jobsApiClient.searchJobs()` builds `params` object
+   - Passes to `backendApiClient.get()` with `params` option
+   - Axios should convert params to query string
 
-## Phase 2 Completion Summary
-- ✅ Created comprehensive type definitions matching backend structure
-- ✅ Implemented BackendApiClient with axios, error handling, and interceptors
-- ✅ Implemented JobsApiClient with searchJobs and getJobById methods
-- ✅ Created JWT authentication utilities
-- ✅ Updated health check to test backend connectivity
-- ✅ All TypeScript types match backend DTOs exactly
-- ✅ Error handling with proper error types
-- ✅ Fixed API response envelope handling (backend wraps responses in { success, data })
-- ✅ API communication verified and working
-- ✅ Ready for Phase 3: Natural Language to Query Mapping
+3. **Possible Issues**:
+   - Agent might not be calling tool with `query` parameter (natural language)
+   - Agent might be calling tool with structured filters but they're empty
+   - Query builder might not be extracting correctly
+   - Params might not be serialized correctly by Axios
 
-## Phase 3 Implementation Summary
-- ✅ Implemented intent extraction using LangChain with structured output (Zod schemas)
-- ✅ Created query normalization to match backend enum values
-- ✅ Built query builder utility with extractIntent and normalizeIntent functions
-- ✅ Added test script for query builder verification
-- ✅ Uses OpenAI gpt-4o-mini with low temperature (0.1) for deterministic extraction
+### Investigation Needed
+- Check what the agent is actually passing to the `search_jobs` tool
+- Verify query builder extraction results
+- Check if Axios is properly serializing params
+- Add logging to see actual query parameters being sent
 
 ## Phase 4 Implementation Summary
 - ✅ Implemented LangChain ReAct agent using createReactAgent
@@ -110,6 +90,16 @@
 - ✅ Agent provides helpful error messages to users
 - ⚠️  Backend must be running for full functionality
 - ⚠️  Zod schema warnings (non-blocking, will be deprecated in future SDK versions)
+- ✅ **RESOLVED**: Query parameters ARE being sent correctly
+  - Investigation revealed this was a LOGGING issue, not a code issue
+  - Query parameters are correctly extracted, built, and sent to backend
+  - Enhanced logging now shows full URL with query string
+  - Example: `GET /jobs/all-jobs?page=1&limit=10&searchTerm=software+engineer&workMode=Remote`
+  - All steps working: query builder → tool → API client → HTTP request
 
----
-*Update this file after every 2 view/browser/search operations*
+- ✅ **FIXED**: Structured filter merging implemented
+  - When agent passes both `query` (natural language) and structured filters, they are now merged
+  - Structured filters are merged only if they weren't already extracted from natural language
+  - Preserves explicit filters like `salaryMin` when agent passes both
+  - Verified: Test query "Show me senior Python jobs paying over $100k" now includes `salaryMin=100000` in URL
+  - Example: `GET /jobs/all-jobs?searchTerm=Python&salaryMin=100000&experienceLevel=Senior`

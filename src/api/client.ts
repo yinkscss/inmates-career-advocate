@@ -26,7 +26,15 @@ export class BackendApiClient {
       (requestConfig) => {
         // Log request in development
         if (config.nodeEnv === 'development') {
-          console.debug(`[API] ${requestConfig.method?.toUpperCase()} ${requestConfig.url}`);
+          const fullUrl = requestConfig.baseURL 
+            ? `${requestConfig.baseURL}${requestConfig.url}`
+            : requestConfig.url;
+          const queryString = requestConfig.params 
+            ? new URLSearchParams(requestConfig.params as Record<string, string>).toString()
+            : '';
+          const urlWithParams = queryString ? `${fullUrl}?${queryString}` : fullUrl;
+          
+          console.debug(`[API] ${requestConfig.method?.toUpperCase()} ${urlWithParams}`);
         }
         return requestConfig;
       },

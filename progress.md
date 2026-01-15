@@ -97,6 +97,7 @@
 - **Status:** ✅ COMPLETE
 - **Started:** 2025-01-27
 - **Completed:** 2025-01-27
+- **Updated:** 2025-01-27 (Added structured filter merging)
 - Actions taken:
   - Implemented search_jobs tool using DynamicStructuredTool
   - Implemented get_job_details tool
@@ -145,6 +146,26 @@
   -
 - Files created/modified:
   -
+
+### Enhancement: Structured Filter Merging
+- **Status:** ✅ COMPLETE
+- **Started:** 2025-01-27
+- **Completed:** 2025-01-27
+- Actions taken:
+  - Implemented filter merging logic in search-jobs.tool.ts
+  - Updated tool description to clarify behavior
+  - Added debug logging for filter merging
+  - Verified TypeScript compilation
+- Files created/modified:
+  - `src/agent/tools/search-jobs.tool.ts` (updated - filter merging logic)
+  - `filter-merge-implementation.md` (created - implementation documentation)
+  - `task_plan.md` (updated - added to errors encountered)
+  - `progress.md` (updated - added enhancement section)
+- Implementation details:
+  - When both query and structured filters are provided, natural language is processed first
+  - Structured filters are merged only if they weren't already extracted
+  - Preserves explicit filters like salaryMin when agent passes both
+  - Backward compatible with existing behavior
 
 ## Test Results
 

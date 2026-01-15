@@ -94,6 +94,9 @@ Rules:
       new HumanMessage(userMessage),
     ]);
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[QUERY BUILDER DEBUG] Extracted intent:', JSON.stringify(result, null, 2));
+    }
     return result;
   } catch (error) {
     // Fallback: return empty intent if extraction fails
@@ -192,6 +195,10 @@ export async function buildQueryFromMessage(
 
   // Normalize to backend query structure
   const query = normalizeIntent(intent);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[QUERY BUILDER DEBUG] Final query:', JSON.stringify(query, null, 2));
+  }
 
   return query as GetJobsQueryDto;
 }
