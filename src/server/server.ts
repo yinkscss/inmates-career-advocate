@@ -7,6 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config } from '../config/config.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
+import { loggerMiddleware } from './middleware/logger.middleware.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
@@ -24,6 +25,9 @@ export async function startServer(): Promise<void> {
   // Body parsing
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Request logging (before routes)
+  app.use(loggerMiddleware);
 
   // Routes
   app.use('/api/chat', authMiddleware, chatRoutes);

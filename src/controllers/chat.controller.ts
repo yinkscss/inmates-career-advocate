@@ -6,6 +6,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../server/middleware/auth.middleware.js';
 import { AgentService } from '../services/agent.service.js';
+import { conversationService } from '../services/conversation.service.js';
 import { formatErrorMessage } from '../utils/response-formatter.js';
 
 const agentService = new AgentService();
@@ -42,11 +43,26 @@ export async function chatController(
       return;
     }
 
-    // TODO: In Phase 7, use req.user?.userId for session management
+    // Get user ID from authenticated request
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'User ID not found in token',
+      });
+      return;
+    }
 
-    // TODO: In Phase 7, retrieve conversation history using conversationId
-    // For now, we'll use empty history (session-scoped memory only)
-    const conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    // Get or create conversation session
+    const session = conversationService.getOrCreateSession(userId, conversationId);
+    const finalConversationId = session.conversationId;
+
+    // Get conversation history
+    const conversationHistory = conversationService.getConversationHistory(finalConversationId);
+
+    // Add user message to session
+    conversationService.addMessage(finalConversationId, 'user', message.trim());
 
     // Process message through agent
     const result = await agentService.processMessage(
@@ -55,13 +71,16 @@ export async function chatController(
       conversationHistory
     );
 
+    // Add assistant response to session
+    conversationService.addMessage(finalConversationId, 'assistant', result.response);
+
     // Return successful response
     res.status(200).json({
       success: true,
       data: {
         response: result.response,
         jobs: result.jobs || [],
-        conversationId: conversationId || `conv_${Date.now()}`, // Generate if not provided
+        conversationId: finalConversationId,
         // Include metadata if jobs were found
         ...(result.jobs && result.jobs.length > 0 && {
           jobsCount: result.jobs.length,
