@@ -4,7 +4,7 @@
 Set up the TypeScript project infrastructure for the Inmates Career Advocate standalone API service, including project structure, dependencies, and configuration files.
 
 ## Current Phase
-Phase 5: Response Generation & Formatting
+Pre-Phase 7: Conversational History Testing (✅ COMPLETE - Ready for Phase 7)
 
 ## Phases
 
@@ -48,16 +48,43 @@ Phase 5: Response Generation & Formatting
 - **Status:** ✅ COMPLETE
 
 ### Phase 5: Response Generation & Formatting
-- [ ] Implement response formatter
-- [ ] Add error handling
-- [ ] Create response synthesis logic
-- **Status:** pending
+- [x] Implement response formatter utility
+- [x] Add comprehensive error handling
+- [x] Complete chat endpoint implementation
+- [x] Add response synthesis helpers
+- **Status:** ✅ COMPLETE
 
 ### Phase 6: Testing & Validation
-- [ ] Write unit tests
-- [ ] Write integration tests
-- [ ] Validate against requirements
-- **Status:** pending
+- [x] Write unit tests for query extraction logic
+- [x] Write unit tests for query normalization
+- [x] Write unit tests for API client error handling
+- [x] Write unit tests for response formatting (already in Phase 5)
+- [x] Write integration tests for agent validation
+- [x] Write validation tests for zero hallucinations
+- [x] Write validation tests for deterministic queries
+- [x] Write validation tests for grounded responses
+- [x] Write validation tests for natural conversation
+- [x] Create test runner for all tests
+- **Status:** ✅ COMPLETE
+
+### Pre-Phase 7: Conversational History Testing
+- [x] Create test suite for conversational history
+- [x] Enhance agent prompts for ID extraction
+- [x] Enhance tool descriptions for better ID handling
+- [x] Add index field to search results for positional references
+- [x] Fix job ID extraction from conversation history
+  - [x] Enhanced agent prompt to include job IDs in responses
+  - [x] Enhanced response formatter to include job IDs
+  - [x] Added automatic job ID injection in agent service
+  - [x] Enhanced get_job_details tool error handling
+- [x] Run tests and verify behavior
+- **Status:** ✅ COMPLETE
+- **Test Results:** 12 passed, 0 failed
+- **Key Achievements:**
+  - Agent successfully extracts job IDs from conversation history
+  - Agent handles various phrasings ("first job", "job number 1", direct IDs)
+  - Agent successfully calls get_job_details with valid IDs
+  - Agent provides detailed job descriptions and application guidance
 
 ### Phase 7: API Server Implementation
 - [ ] Set up Express/Fastify server
@@ -89,6 +116,10 @@ Phase 5: Response Generation & Formatting
 | TypeScript deep instantiation errors with DynamicStructuredTool | 1 | Added @ts-expect-error comments (known TypeScript limitation) |
 | Message type compatibility issues | 1 | Fixed type guards and message format conversion |
 | Structured filters ignored when query parameter present | 1 | Implemented filter merging logic to preserve explicit structured filters |
+| Jobs not extracted from agent responses | 1 | Improved extractJobsFromMessages() to handle LangGraph BaseMessage types and tool message structure |
+| Jobs still not extracted (role check issue) | 2 | Fixed extraction to check `name` property instead of `role === 'tool'` (LangGraph doesn't set role on tool messages) |
+| Query normalization tests failing | 1 | Fixed tests to use buildQueryFromMessage (end-to-end) instead of calling normalizeIntent directly with raw objects |
+| API client error tests failing | 1 | Fixed tests to expect ApiError objects (not Error instances) as API client throws ApiError objects |
 
 ## Notes
 - Following LangChain TypeScript skill patterns

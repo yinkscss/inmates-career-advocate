@@ -45,6 +45,13 @@ The tool accepts:
 
 When using both, structured filters will only be applied if they weren't already extracted from the natural language query. This ensures explicit filters (like salaryMin) are preserved even if the natural language doesn't mention them.
 
+The tool returns jobs with:
+- id: Job ID (use this with get_job_details tool for follow-up questions)
+- index: Position in list (1-based, for "first job", "second job" references)
+- title, company, location, workMode, salaryRange, tags, url, description
+
+IMPORTANT: When presenting results, always include job IDs so users can reference them in follow-up questions (e.g., "Tell me more about job [ID]" or "I want details on the first job").
+
 Always use this tool to retrieve job data. Never make up or hallucinate job listings.`,
     schema: SearchJobsInputSchema,
     func: async (input) => {
@@ -164,14 +171,16 @@ Always use this tool to retrieve job data. Never make up or hallucinate job list
         }
 
         // Format response for the agent
+        // IMPORTANT: Include job IDs prominently so agent can extract them for follow-up questions
         return JSON.stringify({
           success: true,
           totalJobs: result.meta.totalItems,
           jobsFound: result.data.length,
           page: result.meta.currentPage,
           totalPages: result.meta.totalPages,
-          jobs: result.data.map((job) => ({
-            id: job._id,
+          jobs: result.data.map((job, index) => ({
+            id: job._id, // Job ID - use this for get_job_details tool
+            index: index + 1, // Position in list (1-based) for "first job", "second job" references
             source: job.source,
             title: job.title,
             company: job.company,

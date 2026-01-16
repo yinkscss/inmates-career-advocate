@@ -127,11 +127,30 @@
   - Begin Phase 5: Response Generation & Formatting
 
 ### Phase 5: Response Generation & Formatting
-- **Status:** pending
+- **Status:** ✅ COMPLETE
+- **Started:** 2025-01-27
+- **Completed:** 2025-01-27
 - Actions taken:
-  -
+  - Implemented response formatter utility with job formatting functions
+  - Added comprehensive error handling in agent service and chat controller
+  - Completed chat endpoint implementation (POST /api/chat)
+  - Added response synthesis helpers (formatJobSummary, formatSalaryRange, etc.)
+  - Implemented error message formatting for user-friendly display
+  - Added suggested actions generation based on job results
 - Files created/modified:
-  -
+  - `src/utils/response-formatter.ts` (created - response formatting utilities)
+  - `src/controllers/chat.controller.ts` (updated - complete implementation)
+  - `src/services/agent.service.ts` (updated - enhanced error handling)
+  - `task_plan.md` (updated - marked Phase 5 complete)
+  - `progress.md` (updated - added Phase 5 details)
+- Implementation details:
+  - Response formatter includes: formatJobSummary, formatSalaryRange, groupJobsByCategory, formatJobsList
+  - Error handling covers: authentication errors, network errors, rate limits, generic errors
+  - Chat endpoint validates request, processes through agent, returns structured response
+  - Response includes: agent response text, jobs array, conversationId, suggestedActions
+  - All TypeScript compilation verified
+- Next steps:
+  - Begin Phase 6: Testing & Validation
 
 ### Phase 6: Testing & Validation
 - **Status:** pending
@@ -166,6 +185,176 @@
   - Structured filters are merged only if they weren't already extracted
   - Preserves explicit filters like salaryMin when agent passes both
   - Backward compatible with existing behavior
+
+### Enhancement: Job Extraction Fix (Attempt 1)
+- **Status:** ⚠️ PARTIAL - Issue persisted
+- **Started:** 2025-01-27
+- **Completed:** 2025-01-27
+- Actions taken:
+  - Improved extractJobsFromMessages() to handle LangGraph BaseMessage types
+  - Added support for BaseMessage.getContent() method
+  - Enhanced tool name checking for job-related tools
+  - Improved error handling and debug logging
+  - Fixed TypeScript type casting issues
+- Files created/modified:
+  - `src/services/agent.service.ts` (updated - improved job extraction)
+  - `job-extraction-fix-plan.md` (created - investigation plan)
+  - `job-extraction-fix.md` (created - fix documentation)
+  - `progress.md` (updated - added enhancement section)
+- Implementation details:
+  - Handles LangGraph BaseMessage types with proper type casting
+  - Checks for tool messages with role 'tool' and name 'search_jobs' or 'get_job_details'
+  - Parses JSON content from tool responses
+  - Extracts jobs array or single job object
+  - Maps tool response format to JobListing format
+  - Debug logging gated behind NODE_ENV === 'development'
+- **Issue Found**: Still checking for `role === 'tool'` which LangGraph doesn't set
+
+### Enhancement: Job Extraction Fix (Attempt 2 - FINAL)
+- **Status:** ✅ COMPLETE & VERIFIED
+- **Started:** 2025-01-27
+- **Completed:** 2025-01-27
+- **Verified:** 2025-01-27 (All test cases passing)
+- **Root Cause Identified**: LangGraph `createReactAgent` doesn't set `role === 'tool'` on tool messages. Tool messages are identified by `name` property.
+- Actions taken:
+  - Changed extraction logic to check `name === 'search_jobs'` or `name === 'get_job_details'` as PRIMARY check
+  - Added fallback check for tool-related properties (`lc_direct_tool_output`, `tool_call_id`, `status`)
+  - Try multiple content sources: `content`, `getContent()`, `lc_direct_tool_output`
+  - Enhanced debug logging to show content type and preview when parsing fails
+  - Verified TypeScript compilation passes
+- Files created/modified:
+  - `src/services/agent.service.ts` (updated - fixed extraction logic)
+  - `task_plan.md` (updated - added to errors encountered)
+  - `findings.md` (updated - documented root cause)
+  - `progress.md` (updated - added attempt 2)
+- Implementation details:
+  - **Key Change**: Check `name` property first, not `role`
+  - Tool messages identified by: `name === 'search_jobs'` OR `name === 'get_job_details'`
+  - Fallback: Check for tool-related properties if name exists
+  - Multiple content sources tried in order: `content` → `getContent()` → `lc_direct_tool_output`
+  - Better error messages with content preview for debugging
+  - Jobs should now be extracted correctly from tool responses
+- **Verification Results:**
+  - ✅ Test 1: "I'm a software engineer, show me remote jobs" → 10 jobs extracted
+  - ✅ Test 2: "Find me React developer positions" → 1 job extracted
+  - ✅ Test 3: "Show me senior Python jobs paying over $100k" → 9 jobs extracted
+  - ✅ All tests show `📋 Jobs Found: X` (no longer "No jobs extracted")
+  - ✅ Debug logs confirm: `[AGENT SERVICE DEBUG] Extracted X jobs from search_jobs tool`
+
+### Phase 5 Testing
+- **Status:** ✅ COMPLETE
+- **Test Script:** `src/test-phase5.ts` (created)
+- **Command:** `npm run test:phase5`
+- **Results:**
+  - ✅ Response formatter utilities: 10/10 tests passed
+    - formatSalaryRange: All variations (min/max, min only, max only, none)
+    - formatJobSummary: Job formatting with all fields
+    - formatJobsList: Multiple jobs formatting
+    - groupJobsByCategory: Job grouping by work mode
+    - formatErrorMessage: Error message formatting
+    - formatNoJobsMessage: No jobs message with suggestions
+  - ⚠️  Chat endpoint tests: Require server running (skipped in automated test)
+  - **Manual Testing:** Endpoint can be tested with curl or Postman
+  - **Documentation:** Created TESTING.md with testing guide
+
+### Phase 6: Testing & Validation
+- **Status:** ✅ COMPLETE
+- **Started:** 2025-01-27
+- **Completed:** 2025-01-27
+- Actions taken:
+  - Created unit tests for query builder (extraction, normalization, deterministic queries)
+  - Created unit tests for API client error handling
+  - Created integration tests for agent validation
+  - Implemented validation tests for all requirements (zero hallucinations, deterministic queries, grounded responses, natural conversation)
+  - Created test runner for all tests
+  - Verified TypeScript compilation
+- Files created/modified:
+  - `src/tests/unit/query-builder.test.ts` (created - query builder unit tests)
+  - `src/tests/unit/api-client.test.ts` (created - API client unit tests)
+  - `src/tests/integration/agent-validation.test.ts` (created - agent validation tests)
+  - `src/tests/run-all-tests.ts` (created - test runner)
+  - `package.json` (updated - added test scripts)
+  - `task_plan.md` (updated - marked Phase 6 complete)
+  - `progress.md` (updated - added Phase 6 details)
+  - `phase6-summary.md` (created - Phase 6 documentation)
+- Test fixes applied:
+  - Query normalization tests: Changed to test end-to-end via buildQueryFromMessage (normalizeIntent expects ExtractedIntent with enum values)
+  - API client error tests: Updated to expect ApiError objects (not Error instances) as API client throws ApiError
+- Test coverage:
+  - Query extraction: 4 test cases
+  - Query normalization: 8 test cases
+  - Deterministic queries: Verified
+  - API client errors: 5+ test scenarios
+  - Zero hallucinations: Validated
+  - Grounded responses: Validated
+  - Natural conversation: Validated
+- Commands:
+  - `npm run test:unit:query` - Query builder tests
+  - `npm run test:unit:api` - API client tests
+  - `npm run test:integration` - Agent validation tests
+  - `npm run test:all` - Run all tests
+- Next steps:
+  - Test conversational history handling
+  - Begin Phase 7: API Server Implementation (session management, final polish)
+
+### Pre-Phase 7: Conversational History Testing
+- **Status:** in_progress
+- **Started:** 2025-01-27
+- Actions taken:
+  - Created comprehensive test suite for conversational history (`src/tests/integration/conversational-history.test.ts`)
+  - Enhanced agent prompts with explicit ID extraction instructions
+  - Enhanced search_jobs tool to include index field for positional references
+  - Enhanced get_job_details tool description with ID extraction guidance
+  - Created documentation for conversational history testing
+- Files created/modified:
+  - `src/tests/integration/conversational-history.test.ts` (created - conversational history tests)
+  - `src/agent/prompts/agent-prompts.ts` (updated - enhanced system prompt)
+  - `src/agent/tools/search-jobs.tool.ts` (updated - added index field, enhanced description)
+  - `src/agent/tools/get-job-details.tool.ts` (updated - enhanced description)
+  - `package.json` (updated - added test:conversation script)
+  - `conversational-history-testing.md` (created - testing documentation)
+  - `task_plan.md` (updated - added pre-Phase 7 section)
+  - `progress.md` (updated - added pre-Phase 7 details)
+- Test scenarios:
+  - Complete conversational flow (search → details → application guidance)
+  - Job ID extraction from various phrasings
+  - Job description summarization
+  - Application guidance quality
+- Next steps:
+  - Run tests: `npm run test:conversation`
+  - Review results and adjust if needed
+  - Proceed to Phase 7 once verified
+
+### Pre-Phase 7: Conversational History Fixes
+- **Status:** in_progress
+- **Issue Found:** Agent unable to extract job IDs from conversation history
+- **Root Cause:** Job IDs not included in agent's text responses, so they weren't in conversation history
+- **Fixes Applied:**
+  - Enhanced agent prompt to explicitly include job IDs in responses
+  - Enhanced response formatter to include job IDs in formatted output
+  - Added automatic job ID injection logic in agent service (injects IDs if missing)
+  - Enhanced get_job_details tool with better error handling and ID extraction instructions
+- Files modified:
+  - `src/agent/prompts/agent-prompts.ts` (enhanced prompt)
+  - `src/utils/response-formatter.ts` (added job ID to formatJobSummary)
+  - `src/services/agent.service.ts` (added job ID injection logic)
+  - `src/agent/tools/get-job-details.tool.ts` (enhanced error handling and descriptions)
+  - `conversational-history-fixes.md` (created - documentation of fixes)
+- Test results: ✅ **ALL TESTS PASSED** (12 passed, 0 failed)
+- Verification:
+  - ✅ Agent includes job IDs in responses: `**Job Title** at Company (ID: ...)`
+  - ✅ Agent successfully extracts job IDs from conversation history
+  - ✅ Agent handles various phrasings:
+    - "Tell me more about the first job" ✅
+    - "What's the description for job [ID]?" ✅
+    - "I want details on [ID]" ✅
+    - "Tell me about job number 1" ✅
+  - ✅ Agent successfully calls `get_job_details` with valid IDs (no repeated failures)
+  - ✅ Agent provides detailed job descriptions
+  - ✅ Agent provides application guidance with URLs
+- Next steps:
+  - ✅ Conversational history testing complete
+  - Ready to proceed to Phase 7: API Server Implementation
 
 ## Test Results
 

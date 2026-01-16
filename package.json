@@ -17,6 +17,12 @@
     "test:api": "tsx src/test-api.ts",
     "test:query-builder": "tsx src/test-query-builder.ts",
     "test:agent": "tsx src/test-agent.ts",
+    "test:phase5": "tsx src/test-phase5.ts",
+    "test:unit:query": "tsx src/tests/unit/query-builder.test.ts",
+    "test:unit:api": "tsx src/tests/unit/api-client.test.ts",
+    "test:integration": "tsx src/tests/integration/agent-validation.test.ts",
+    "test:conversation": "tsx src/tests/integration/conversational-history.test.ts",
+    "test:all": "tsx src/tests/run-all-tests.ts",
     "extract-token": "tsx src/extract-token.ts"
   },
   "dependencies": {

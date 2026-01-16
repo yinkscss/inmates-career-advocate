@@ -22,17 +22,35 @@ export function createGetJobDetailsTool(token: string) {
     description: `Get detailed information about a specific job by its ID.
     
 Use this tool when:
-- User asks about a specific job (e.g., "tell me more about job ID 123")
+- User asks about a specific job (e.g., "tell me more about job ID 123", "what's the first job?", "details on that job")
+- User references a job from previous search results (e.g., "the first job", "job number 2", "that Python job")
 - User wants to see full job description, requirements, or application details
 - User needs complete information before applying
 
+IMPORTANT: 
+- Extract the job ID from previous search results in the conversation history
+- Look for job IDs in the format "ID: [id]" or "Job ID: [id]" in previous assistant messages
+- If user says "first job", look for the first job ID mentioned in previous search results (usually index: 1)
+- If user says "second job", look for the second job ID mentioned
+- If user provides a job ID directly (e.g., "job 696a1a3675d84991c4263b05"), use it exactly as provided
+- Job IDs are typically long alphanumeric strings (e.g., "696a1a3675d84991c4263b05")
+- Always use this tool to get fresh details - don't rely on memory from search results
+- If you can't find a job ID, ask the user to specify which job they mean or provide the job ID
+
 The tool returns comprehensive job information including:
-- Full job description
+- Full job description (complete, not truncated)
 - Company details
 - Salary range
 - Required skills/tags
-- Application URL
+- Application URL (important for application guidance)
 - Company contact email (if available)
+
+When presenting job details:
+- Summarize the key requirements and qualifications
+- Highlight important skills or experience needed
+- Always mention the application URL
+- If company email is available, mention it as an alternative application method
+- Provide guidance on how to apply (e.g., "You can apply by clicking the link above" or "Visit [URL] to apply")
 
 Always use this tool to get job details. Never make up job information.`,
     schema: GetJobDetailsInputSchema,
@@ -71,10 +89,24 @@ Always use this tool to get job details. Never make up job information.`,
           },
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        // Provide detailed error for debugging
+        let errorMessage = 'Unknown error';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        // Log for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TOOL DEBUG] get_job_details error:', errorMessage);
+          console.log('[TOOL DEBUG] Input jobId:', input.jobId);
+        }
+        
         return JSON.stringify({
           success: false,
           error: errorMessage,
+          jobId: input.jobId, // Include jobId in error for debugging
         });
       }
     },
