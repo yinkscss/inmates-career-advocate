@@ -18,7 +18,7 @@ const IntentExtractionSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Job role, title, or keywords extracted from the user message (e.g., "software engineer", "developer", "React developer")'
+      'Job role, title, or keywords. For specific roles use one term (e.g. "software engineer"). For broad categories (e.g. "media roles", "tech jobs") expand into specific job titles as a pipe-separated list so search matches any of them (e.g. "graphic design|photography|video editor|social media manager|content creator").'
     ),
   location: z
     .string()
@@ -78,15 +78,20 @@ export async function extractIntent(
 Your task is to extract structured information from user messages about job searches.
 
 Rules:
-- Only extract information that is EXPLICITLY mentioned in the user message
-- Do NOT assume or infer missing attributes
-- If a value is ambiguous or unclear, omit it
+- Only extract information that is EXPLICITLY mentioned in the user message, with one exception below.
+- Do NOT assume or infer missing attributes (except for broad categories).
+- If a value is ambiguous or unclear, omit it.
+- **Broad job categories:** When the message describes a broad category (e.g. "media roles", "tech jobs", "creative jobs", "healthcare", "something in design"), expand it into specific job titles or keywords that commonly appear in job listings. Put the expanded list in searchTerm as a pipe-separated list (e.g. "graphic design|photography|video editor|social media manager|content creator") so the search can match any of these terms. Do not return the broad phrase verbatim if it is unlikely to match real job titles.
 - For salary, convert text to numeric USD values (e.g., "$80k" → 80000, "six figures" → 100000)
 - For job type, map variations: "full-time"/"full time"/"FT" → "Full-time"
 - For work mode, map: "remote"/"work from home"/"WFH" → "Remote", "on-site"/"onsite"/"office" → "On-site"
 - For experience, map: "junior"/"jr"/"entry-level" → "Junior", "mid"/"intermediate" → "Mid", "senior"/"sr"/"lead"/"principal" → "Senior"
 - Extract technical skills as keywords array
-- If location is mentioned as "remote" or similar, set workMode to "Remote" instead of location`;
+- If location is mentioned as "remote" or similar, set workMode to "Remote" instead of location
+
+Example of broad category expansion:
+- Input: "can you find me a media role" or "media roles"
+- Output searchTerm: "graphic design|photography|video editor|social media|content creator|videographer|media coordinator"`;
 
   try {
     const result = await structuredModel.invoke([
@@ -147,8 +152,11 @@ export function normalizeIntent(intent: ExtractedIntent): Partial<GetJobsQueryDt
     const seen = new Set<string>();
     
     if (intent.searchTerm) {
-      // Normalize the search term for common patterns
-      const normalizedTerm = normalizeSearchTerm(intent.searchTerm);
+      // Pipe-separated terms are from broad-category expansion: use as-is so backend regex OR works
+      const isExpanded = intent.searchTerm.includes('|');
+      const normalizedTerm = isExpanded
+        ? intent.searchTerm.trim()
+        : normalizeSearchTerm(intent.searchTerm);
       parts.push(normalizedTerm);
       // Add words from searchTerm to seen set to avoid duplicates
       normalizedTerm.toLowerCase().split(/\s+/).forEach(word => seen.add(word));
