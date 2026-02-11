@@ -106,6 +106,36 @@ Rules:
 }
 
 /**
+ * Normalize search term for common job title patterns
+ * Handles hyphenation for better search results
+ */
+function normalizeSearchTerm(term: string): string {
+  // Common multi-word job titles that should be hyphenated
+  const hyphenatedPatterns: Record<string, string> = {
+    'full stack': 'full-stack',
+    'front end': 'front-end',
+    'back end': 'back-end',
+    'graphic designer': 'graphic-designer',
+    'graphics designer': 'graphics-designer',
+    'web developer': 'web-developer',
+    'software engineer': 'software-engineer',
+    'data scientist': 'data-scientist',
+    'product manager': 'product-manager',
+    'project manager': 'project-manager',
+    'ui ux': 'ui-ux',
+  };
+  
+  let normalized = term.toLowerCase();
+  
+  // Replace multi-word patterns with hyphenated versions
+  for (const [pattern, replacement] of Object.entries(hyphenatedPatterns)) {
+    normalized = normalized.replace(new RegExp(pattern, 'gi'), replacement);
+  }
+  
+  return normalized;
+}
+
+/**
  * Normalize extracted intent to match backend query structure
  */
 export function normalizeIntent(intent: ExtractedIntent): Partial<GetJobsQueryDto> {
@@ -117,9 +147,11 @@ export function normalizeIntent(intent: ExtractedIntent): Partial<GetJobsQueryDt
     const seen = new Set<string>();
     
     if (intent.searchTerm) {
-      parts.push(intent.searchTerm);
+      // Normalize the search term for common patterns
+      const normalizedTerm = normalizeSearchTerm(intent.searchTerm);
+      parts.push(normalizedTerm);
       // Add words from searchTerm to seen set to avoid duplicates
-      intent.searchTerm.toLowerCase().split(/\s+/).forEach(word => seen.add(word));
+      normalizedTerm.toLowerCase().split(/\s+/).forEach(word => seen.add(word));
     }
     
     if (intent.keywords && intent.keywords.length > 0) {
@@ -179,6 +211,11 @@ export function normalizeIntent(intent: ExtractedIntent): Partial<GetJobsQueryDt
   // Default sorting (most recent first)
   query.sortBy = SortBy.CREATED_AT;
   query.sortOrder = SortOrder.DESC;
+
+  // Default date filter: last 7 days (convert to ISO string)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  query.startDate = sevenDaysAgo.toISOString();
 
   return query;
 }

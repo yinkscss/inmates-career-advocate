@@ -61,15 +61,24 @@ export async function chatController(
     // Get conversation history
     const conversationHistory = conversationService.getConversationHistory(finalConversationId);
 
+    // Get search context for pagination
+    const searchContext = conversationService.getSearchContext(finalConversationId);
+
     // Add user message to session
     conversationService.addMessage(finalConversationId, 'user', message.trim());
 
-    // Process message through agent
+    // Process message through agent with search context
     const result = await agentService.processMessage(
       message.trim(),
       token,
-      conversationHistory
+      conversationHistory,
+      searchContext || undefined
     );
+
+    // Update search context if search was performed
+    if (result.searchPerformed && result.searchContext) {
+      conversationService.updateSearchContext(finalConversationId, result.searchContext);
+    }
 
     // Add assistant response to session
     conversationService.addMessage(finalConversationId, 'assistant', result.response);

@@ -6,11 +6,16 @@
 import { createJobDiscoveryAgent, runAgent } from '../agent/job-discovery-agent.js';
 import type { JobListing } from '../types/job.types.js';
 import { formatErrorMessage } from '../utils/response-formatter.js';
+import type { SearchContext } from './conversation.service.js';
+import { ChatOpenAI } from '@langchain/openai';
+import { z } from 'zod';
 
 export interface AgentResponse {
   response: string;
   jobs?: JobListing[];
   conversationId?: string;
+  searchPerformed?: boolean;
+  searchContext?: SearchContext;
 }
 
 export interface ConversationMessage {
@@ -28,11 +33,100 @@ export class AgentService {
   async processMessage(
     userMessage: string,
     token: string,
-    conversationHistory: ConversationMessage[] = []
+    conversationHistory: ConversationMessage[] = [],
+    searchContext?: SearchContext
   ): Promise<AgentResponse> {
     try {
-      // Create agent with JWT token
-      const agent = createJobDiscoveryAgent(token);
+      // Let the LLM classify the intent - more robust than keywords/regex
+      // IMPORTANT: Only classify if there's a valid previous search context
+      let isFindMoreRequest = false;
+      
+      if (searchContext && searchContext.currentPage && searchContext.currentPage > 0) {
+        // Only classify if there's meaningful search context
+        const intentSchema = z.object({
+          intent: z.enum(['find_more', 'new_search']).describe(
+            'find_more: User wants more results from the same search (e.g., "show more", "next page", "continue"). ' +
+            'new_search: User wants to start a new search with different criteria.'
+          ),
+        });
+        
+        try {
+          const llm = new ChatOpenAI({
+            modelName: 'gpt-4o-mini',
+            temperature: 0,
+          });
+          
+          const structuredLlm = llm.withStructuredOutput(intentSchema);
+          
+          // Include previous search query for better context
+          const previousQuery = searchContext.lastSearchQuery || 'unknown';
+          
+          const result = await structuredLlm.invoke([
+            {
+              role: 'system',
+              content: 'You are an intent classifier. Determine if the user wants more results from their SAME previous search, or wants to start a DIFFERENT new search.\n\n' +
+                       'find_more: User wants continuation of same search (e.g., "show more", "next page", "continue", "more jobs")\n' +
+                       'new_search: User has NEW search criteria or different job requirements',
+            },
+            {
+              role: 'user',
+              content: `Previous search: "${previousQuery}"\nCurrent message: "${userMessage}"\n\nAre these the SAME search or DIFFERENT searches?`,
+            },
+          ]);
+          
+          isFindMoreRequest = result.intent === 'find_more';
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AGENT SERVICE DEBUG] LLM classified intent:', result.intent, '(previous page:', searchContext.currentPage + ')');
+          }
+        } catch (error) {
+          // Fallback: treat as new search if classification fails
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AGENT SERVICE DEBUG] Intent classification failed, defaulting to new search');
+          }
+          isFindMoreRequest = false;
+        }
+      } else {
+        // No valid search context - this is definitely a new search
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[AGENT SERVICE DEBUG] No search context, treating as new search');
+        }
+        isFindMoreRequest = false;
+      }
+      
+      // Determine current page for search
+      let currentPage = 1;
+      const maxPages = 100; // Remove hard limit, rely on backend totalPages instead
+      
+      // If "find more" and we have previous search context
+      if (isFindMoreRequest && searchContext) {
+        // Start from NEXT page after the last search
+        currentPage = (searchContext.currentPage || 0) + 1;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[AGENT SERVICE DEBUG] Find more detected, incrementing page:', {
+            previousPage: searchContext.currentPage,
+            nextPage: currentPage,
+          });
+        }
+        
+        // If exceeded max pages, reset to 1 for broader search
+        if (currentPage > maxPages) {
+          currentPage = 1;
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AGENT SERVICE DEBUG] Exceeded max pages, resetting to page 1');
+          }
+        }
+      } else if (!isFindMoreRequest) {
+        // New search, start from page 1
+        currentPage = 1;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[AGENT SERVICE DEBUG] New search, starting from page 1');
+        }
+      }
+      
+      // Create agent with JWT token and search context
+      const agent = createJobDiscoveryAgent(token, { currentPage, maxPages, isFindMoreRequest, searchContext });
 
       // Convert conversation history to simple format for agent
       const historyForAgent = conversationHistory.map((msg) => ({
@@ -62,14 +156,42 @@ export class AgentService {
       }
 
       // Extract jobs from tool results if any
-      const jobs = this.extractJobsFromMessages(result.messages);
+      const extractedJobs = this.extractJobsFromMessages(result.messages);
+      
+      // Extract finalPage from tool response for search context
+      let finalPageFromTool: number | undefined;
+      for (const message of result.messages) {
+        const msg = message as any;
+        if (msg.name === 'search_jobs' && msg.content) {
+          try {
+            const toolResult = typeof msg.content === 'string' 
+              ? JSON.parse(msg.content) 
+              : msg.content;
+            if (toolResult.finalPage !== undefined) {
+              finalPageFromTool = toolResult.finalPage;
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+      // Deduplicate jobs ONLY if they are exact duplicates (same ID)
+      // User wants ALL jobs displayed, so we only remove exact ID duplicates
+      const jobs = this.deduplicateJobsByIdOnly(extractedJobs);
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('[DEBUG] Extracted jobs count:', jobs.length);
+        console.log('[DEBUG] Extracted jobs count:', extractedJobs.length);
+        if (extractedJobs.length !== jobs.length) {
+          console.log('[DEBUG] Removed exact ID duplicates, final count:', jobs.length);
+        }
+        if (finalPageFromTool) {
+          console.log('[DEBUG] Final page from tool:', finalPageFromTool);
+        }
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[AGENT SERVICE DEBUG] Extracted jobs:', jobs.length);
+        console.log('[AGENT SERVICE DEBUG] Final jobs (after ID deduplication):', jobs.length);
       }
 
       // If no jobs found but agent provided a response, check if we should enhance it
@@ -141,6 +263,12 @@ export class AgentService {
       return {
         response: finalResponse,
         jobs,
+        searchPerformed: jobs.length > 0,
+        searchContext: jobs.length > 0 ? {
+          currentPage: finalPageFromTool || currentPage, // Use finalPage from tool if available
+          lastSearchQuery: userMessage,
+          searchTimestamp: new Date(),
+        } : undefined,
       };
     } catch (error) {
       // Enhanced error handling
@@ -272,6 +400,51 @@ export class AgentService {
     }
 
     return jobs;
+  }
+
+  /**
+   * Deduplicate jobs by ID only (exact duplicates)
+   * User wants ALL jobs displayed, so we only remove exact ID duplicates
+   * Backend may return same job ID multiple times, but different content should be kept
+   */
+  private deduplicateJobsByIdOnly(jobs: JobListing[]): JobListing[] {
+    const seen = new Map<string, JobListing>();
+    
+    for (const job of jobs) {
+      // Only deduplicate if the exact same ID appears multiple times
+      if (job._id && !seen.has(job._id)) {
+        seen.set(job._id, job);
+      } else if (!job._id) {
+        // If no ID, keep all (edge case)
+        // Generate a unique key for jobs without IDs
+        const uniqueKey = `no-id-${Math.random()}`;
+        seen.set(uniqueKey, job);
+      }
+    }
+    
+    return Array.from(seen.values());
+  }
+  
+  /**
+   * Deduplicate jobs based on content (title, company, description)
+   * DEPRECATED: User wants all jobs displayed, keeping for reference only
+   * Use deduplicateJobsByIdOnly instead
+   */
+  private deduplicateJobs(jobs: JobListing[]): JobListing[] {
+    const seen = new Map<string, JobListing>();
+    
+    for (const job of jobs) {
+      // Create a content-based key (title + company + first 100 chars of description)
+      const descriptionPreview = job.description.substring(0, 100).trim();
+      const key = `${job.title.toLowerCase()}|${job.company.toLowerCase()}|${descriptionPreview}`;
+      
+      // Only keep the first occurrence
+      if (!seen.has(key)) {
+        seen.set(key, job);
+      }
+    }
+    
+    return Array.from(seen.values());
   }
 
   /**

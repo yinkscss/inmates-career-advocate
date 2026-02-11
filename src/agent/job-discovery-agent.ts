@@ -10,11 +10,22 @@ import { createSearchJobsTool } from './tools/search-jobs.tool.js';
 import { createGetJobDetailsTool } from './tools/get-job-details.tool.js';
 import { SYSTEM_PROMPT, MESSAGE_MODIFIER } from './prompts/agent-prompts.js';
 
+export interface AgentOptions {
+  currentPage?: number;
+  maxPages?: number;
+  isFindMoreRequest?: boolean;
+  searchContext?: {
+    lastSearchQuery?: string;
+    lastSearchFilters?: Record<string, unknown>;
+  };
+}
+
 /**
  * Create the job discovery agent with tools
  * @param token - JWT token for backend API authentication
+ * @param options - Agent options including pagination context
  */
-export function createJobDiscoveryAgent(token: string) {
+export function createJobDiscoveryAgent(token: string, options?: AgentOptions) {
   // Initialize the LLM model
   const model = new ChatOpenAI({
     model: config.agentModel,
@@ -23,9 +34,9 @@ export function createJobDiscoveryAgent(token: string) {
     maxTokens: 2000,
   });
 
-  // Create tools with the JWT token
+  // Create tools with the JWT token and options
   const tools = [
-    createSearchJobsTool(token),
+    createSearchJobsTool(token, options),
     createGetJobDetailsTool(token),
   ];
 

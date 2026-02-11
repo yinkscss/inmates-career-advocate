@@ -198,3 +198,206 @@ When testing conversational history, the agent was unable to extract job IDs fro
 
 ### Key Insight
 The critical fix was ensuring job IDs are visible in the conversation history. By including job IDs in the agent's text responses (either naturally via prompt or automatically via injection), the agent can now extract them when users ask follow-up questions. This enables true conversational flow where users can reference jobs from previous searches.
+
+## Post-Phase 7: Response Quality Issues
+
+### Issue 1: Verbose, Formal Response Format
+**Problem**: Agent responses are too formal and verbose with bullet points and markdown formatting
+**Example**:
+```
+I found some job opportunities for Junior Full-Stack Developers! Here are the details:
+
+1. **Junior Full-Stack Developer** at **SMRTR Solutions**  
+   - **Location**: Remote  
+   - **Work Mode**: Remote  
+   ...
+```
+**Desired**: More conversational, cleaner format like "I found 4 jobs for you. The first one is..."
+
+### Issue 2: Duplicate Jobs
+**Problem**: Backend returns same job 4 times with different IDs
+**Example**: All 4 results are identical "Junior Full-Stack Developer at SMRTR Solutions"
+**Solution**: Implement deduplication based on job content (title + company + description)
+
+### Issue 3: Search Term Normalization
+**Problem**: "graphics designer" should be normalized to "graphics-designer" for better search
+**Analysis**: Common job titles often use hyphens (e.g., "full-stack", "front-end", "back-end")
+**Solution**: Add normalization rule to convert common multi-word job titles to hyphenated format
+
+### Issue 4: Conversation History Count
+**Problem**: User expects 6 conversations but sees different count
+**Analysis**: Need to verify conversation service is counting correctly (user messages + assistant messages)
+**Note**: Conversation history count depends on the `addMessage()` calls in the chat controller. Each user message and assistant response should be counted as separate messages.
+
+### Solutions Implemented
+
+1. **Conversational Response Style** ✅
+   - Updated system prompt to emphasize natural, flowing conversation
+   - Removed excessive markdown and bullet points from examples
+   - Added conversational examples showing cleaner output format
+   - File: `src/agent/prompts/agent-prompts.ts`
+
+2. **Job Deduplication** ✅
+   - Implemented `deduplicateJobs()` method in AgentService
+   - Creates content-based key: `title + company + description preview`
+   - Keeps only first occurrence of each unique job
+   - Handles backend returning same job with different IDs
+   - File: `src/services/agent.service.ts`
+
+3. **Hyphenated Job Title Normalization** ✅
+   - Added `normalizeSearchTerm()` function to query builder
+   - Converts common patterns: "graphics designer" → "graphics-designer"
+   - Handles: full stack, front end, back end, web developer, etc.
+   - Improves search accuracy for multi-word job titles
+   - File: `src/utils/query-builder.ts`
+
+### Expected Improvements
+- Agent responses will be more conversational and cleaner
+- Duplicate jobs will be filtered out automatically
+- Search terms like "graphics designer" will be normalized to "graphics-designer" for better backend matching
+- Overall better user experience with natural conversation flow
+
+## New Issues Found (User Testing)
+
+### Issue 1: Case Sensitivity Bug - workMode
+**Problem:** Agent sends `workMode: "remote"` (lowercase) but backend expects `workMode: "Remote"` (capitalized)
+**Error from logs:**
+```
+[API Error] 400: {
+  message: ['workMode must be one of the following values: Remote, On-site, Hybrid']
+}
+```
+**Root Cause:** The agent tool is passing lowercase "remote" when user says "remote", but backend enum requires capitalized values
+**Solution:** Normalize enum values in the search_jobs tool before sending to API
+
+### Issue 2: Missing Retry Logic
+**Problem:** When API returns 400 errors (validation errors), agent gives up without retrying
+**Expected Behavior:** 
+- If backend returns validation error (e.g., wrong enum case), retry with corrected values
+- Implement smart retry logic that fixes common issues (case sensitivity, enum values)
+**Solution:** Add retry logic to API client with error-specific fixes
+
+### Issue 3: Jobs Not Sent to Frontend
+**Problem:** Agent found 9 jobs but frontend only shows 2-3
+**Root Causes Found:**
+1. ❌ **Frontend limitation**: `CareerAdvocate.jsx` line 156 used `.slice(0, 3)` to limit display to first 3 jobs
+2. ❌ **Aggressive deduplication**: Content-based deduplication was removing jobs with similar titles/companies
+**User Requirement:** ALL jobs found should be displayed programmatically for future features
+**Solutions Implemented:**
+1. ✅ Removed `.slice(0, 3)` from frontend - now displays ALL jobs in `message.jobs` array
+2. ✅ Changed deduplication to ID-only - only removes exact same job ID duplicates
+3. ✅ All jobs from backend are now sent and displayed in frontend
+
+### Issue 4: finalPage Calculation Bug (✅ FIXED)
+**Problem:** Page doesn't increment on "find more" - keeps fetching page 2 instead of moving to page 3
+**Evidence from Logs:**
+```
+[TOOL DEBUG] Fetched page 2: 2 jobs
+[DEBUG] Final page from tool: 1  ❌ (should be 2!)
+```
+**Root Cause:** 
+- `finalPage: currentPageToFetch - 1` calculation is incorrect
+- When we fetch page 2 and immediately break (last page), `currentPageToFetch` is still 2
+- So `finalPage = 2 - 1 = 1` ❌ (should be 2)
+**Solution:** 
+- Track `lastSuccessfulPage` variable
+- Update it on every successful fetch: `lastSuccessfulPage = currentPageToFetch`
+- Return `finalPage: lastSuccessfulPage` instead of calculated value
+**Result:**
+- Page 1 → finalPage = 1 ✅
+- Page 2 → finalPage = 2 ✅ (was 1 before)
+- Next "find more" → starts from page 3 ✅ (was page 2 before)
+
+### Issue 5: LLM Overrides Page from Context (✅ FIXED)
+**Problem:** Auto-pagination stops at page 2, doesn't continue to page 3+
+**Evidence from Logs:**
+```
+[TOOL DEBUG] Using page from context: 3  ✅ (correct!)
+[TOOL DEBUG] Merging structured filters: {
+  "page": 2,  ❌ (LLM passes page: 2)
+}
+[TOOL DEBUG] Final merged query: {
+  "page": 2,  ❌ (overwrites context!)
+}
+```
+**Root Cause:**
+- The LLM decides what parameters to pass to the tool
+- It sees conversation history and passes `page: 2` in structured filters
+- This OVERRIDES the `page: 3` from search context
+- Structured filters are merged AFTER setting page from context
+**Solution:**
+- Remove `page` from structured filters before merging
+- Page should ONLY come from context/options, never from LLM
+- This ensures consistent pagination control
+
+### Issue 6: "Find More" Not Incrementing from finalPage
+**Problem:** After first search ends at page 1, "find more" should start from page 2, but starts from page 1 again
+**Evidence from Logs:**
+```
+First search: finalPage = 1
+User: "can you find me more?"
+[TOOL DEBUG] Using page from context: 1  ❌ (should be 2!)
+```
+**Root Cause:**
+- `isFindMoreRequest` detection increments `currentPage` from `searchContext.currentPage`
+- But if there's no search context, it defaults to page 1
+- OR the increment logic isn't working correctly
+**Solution:**
+- Fix increment logic: `currentPage = (searchContext?.currentPage || 0) + 1`
+- This ensures "find more" always moves to next page
+
+### Issue 7: Stops After First Empty Page (✅ FIXED)
+**Problem:** Auto-pagination stops immediately when a page returns 0 results
+**User Requirement:** "if no results, keep on looking, keep increasing the page, until after 5 increments"
+**Solution:**
+- Track consecutive empty pages
+- Keep fetching until 5 consecutive empty pages
+- Only then stop and report no results
+
+### Issue 8: "Find More" Regex Too Narrow
+**Problem:** User says "can you search for more" but system doesn't recognize it as "find more" request
+**Evidence:**
+```
+User: "can you search for more"
+[AGENT SERVICE DEBUG] New search, starting from page 1  ❌
+# Should detect as "find more" and increment page
+```
+**Root Cause:**
+```typescript
+// Current regex (TOO NARROW):
+/find\s+more|show\s+more|see\s+more|more\s+jobs|next\s+page/i
+// ❌ Doesn't match: "search for more", "find me more", "any more"
+```
+**User Requirement:** 
+"So if it stops at five, then next time I see 'Show more,' it's going 5, 6, 7, 8, 9"
+"It's just in a loop: 1 to 5, 1 to 5, 1 to 5. Keep increasing and increasing."
+**Solution:**
+- Let the LLM classify intent (already running, no extra cost)
+- LLM determines: "find_more" vs "new_search"
+- More robust and context-aware than keywords/regex
+
+### Issue 9: LLM Classifies First Message as "find_more"
+**Problem:** First message with no search context is classified as "find_more"
+**Evidence:**
+```
+conversationId: "none" (first message)
+LLM classified: find_more ❌
+Result: Searches page 2 instead of page 1
+```
+**Root Cause:** 
+- Intent classification runs even when there's no meaningful search context
+- LLM sees "Show me" and incorrectly classifies as continuation
+**Solution:**
+- Only run LLM classification if searchContext exists AND has a valid currentPage
+- For first messages, always treat as new_search
+
+### Issue 10: LLM Mis-classifies New Search as "find_more"
+**Problem:** User says "Show me remote software engineer jobs" but LLM thinks it's "find_more"
+**Evidence:**
+```
+Previous context exists (page 1)
+User: "Show me remote software engineer jobs" (NEW search!)
+LLM: find_more ❌ (should be new_search)
+```
+**Root Cause:** LLM doesn't know what the previous search was about, so can't compare
+**Solution:** Include previous search query in the classification prompt for comparison

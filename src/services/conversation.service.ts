@@ -11,12 +11,21 @@ export interface ConversationMessage {
   timestamp: Date;
 }
 
+export interface SearchContext {
+  lastSearchQuery?: string;
+  lastSearchFilters?: Record<string, unknown>;
+  currentPage: number;
+  totalPages?: number;
+  searchTimestamp?: Date;
+}
+
 export interface ConversationSession {
   conversationId: string;
   userId: string;
   messages: ConversationMessage[];
   createdAt: Date;
   lastActivity: Date;
+  searchContext: SearchContext;
 }
 
 /**
@@ -59,6 +68,9 @@ class ConversationService {
       messages: [],
       createdAt: new Date(),
       lastActivity: new Date(),
+      searchContext: {
+        currentPage: 1,
+      },
     };
 
     this.sessions.set(newConversationId, session);
@@ -112,6 +124,43 @@ class ConversationService {
    */
   getSession(conversationId: string): ConversationSession | undefined {
     return this.sessions.get(conversationId);
+  }
+
+  /**
+   * Update search context for a conversation
+   */
+  updateSearchContext(
+    conversationId: string,
+    updates: Partial<SearchContext>
+  ): void {
+    const session = this.sessions.get(conversationId);
+    if (session) {
+      session.searchContext = {
+        ...session.searchContext,
+        ...updates,
+        searchTimestamp: new Date(),
+      };
+    }
+  }
+
+  /**
+   * Get search context for a conversation
+   */
+  getSearchContext(conversationId: string): SearchContext | null {
+    const session = this.sessions.get(conversationId);
+    return session ? session.searchContext : null;
+  }
+
+  /**
+   * Reset search context (start new search)
+   */
+  resetSearchContext(conversationId: string): void {
+    const session = this.sessions.get(conversationId);
+    if (session) {
+      session.searchContext = {
+        currentPage: 1,
+      };
+    }
   }
 
   /**
