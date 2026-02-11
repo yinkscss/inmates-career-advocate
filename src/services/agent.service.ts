@@ -4,6 +4,7 @@
  */
 
 import { createJobDiscoveryAgent, runAgent } from '../agent/job-discovery-agent.js';
+import { config } from '../config/config.js';
 import type { JobListing } from '../types/job.types.js';
 import { formatErrorMessage } from '../utils/response-formatter.js';
 import type { SearchContext } from './conversation.service.js';
@@ -21,6 +22,37 @@ export interface AgentResponse {
 export interface ConversationMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+/** Marker in assistant content that indicates job IDs were included (for "first job" follow-ups) */
+const JOB_IDS_MARKER = 'ID: ';
+
+/**
+ * Trim conversation history to a bounded window for the agent while preserving
+ * the most recent job search result so follow-up references like "the first job" work.
+ * Exported for unit testing.
+ */
+export function getHistoryForAgent(
+  fullHistory: ConversationMessage[],
+  maxMessages: number
+): ConversationMessage[] {
+  if (fullHistory.length <= maxMessages) {
+    return fullHistory;
+  }
+  const tail = fullHistory.slice(-maxMessages);
+  // Ensure we include the last assistant message that contains job IDs, if it would be cut off
+  let lastJobListIndex = -1;
+  for (let i = fullHistory.length - 1; i >= 0; i--) {
+    const msg = fullHistory[i];
+    if (msg.role === 'assistant' && msg.content.includes(JOB_IDS_MARKER)) {
+      lastJobListIndex = i;
+      break;
+    }
+  }
+  if (lastJobListIndex >= 0 && lastJobListIndex < fullHistory.length - maxMessages) {
+    return fullHistory.slice(lastJobListIndex);
+  }
+  return tail;
 }
 
 /**
@@ -128,11 +160,16 @@ export class AgentService {
       // Create agent with JWT token and search context
       const agent = createJobDiscoveryAgent(token, { currentPage, maxPages, isFindMoreRequest, searchContext });
 
-      // Convert conversation history to simple format for agent
-      const historyForAgent = conversationHistory.map((msg) => ({
+      // Trim history to configured window so agent receives bounded context
+      const trimmedHistory = getHistoryForAgent(conversationHistory, config.maxHistoryMessages);
+      const historyForAgent = trimmedHistory.map((msg) => ({
         role: msg.role,
         content: msg.content,
       }));
+
+      if (process.env.NODE_ENV === 'development' && conversationHistory.length > trimmedHistory.length) {
+        console.log('[AGENT SERVICE DEBUG] History trimmed:', conversationHistory.length, '->', trimmedHistory.length, 'messages');
+      }
 
       // Run the agent
       const result = await runAgent(agent, userMessage, historyForAgent);

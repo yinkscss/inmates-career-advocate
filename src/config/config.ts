@@ -16,6 +16,7 @@ interface AppConfig {
   agentModel: string;
   agentTemperature: number;
   maxIterations: number;
+  maxHistoryMessages: number;
   corsOrigin: string;
 }
 
@@ -36,5 +37,6 @@ export const config: AppConfig = {
   agentModel: getEnvVar('AGENT_MODEL', 'gpt-4o-mini'),
   agentTemperature: parseFloat(getEnvVar('AGENT_TEMPERATURE', '0.1')),
   maxIterations: parseInt(getEnvVar('MAX_ITERATIONS', '10'), 10),
+  maxHistoryMessages: parseInt(getEnvVar('MAX_HISTORY_MESSAGES', '12'), 10),
   corsOrigin: getEnvVar('CORS_ORIGIN', 'http://localhost:3000'),
 };
