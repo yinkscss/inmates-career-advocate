@@ -33,7 +33,12 @@ npm run test:phase5
 The chat endpoint tests require:
 1. Server running (`npm run dev`)
 2. Backend API running (`http://localhost:6543/api`)
-3. Valid JWT token in `.env` as `TEST_JWT_TOKEN`
+3. Valid JWT token in `.env` as `TEST_JWT_TOKEN` (dev-only, see note below)
+
+**IMPORTANT: TEST_JWT_TOKEN is DEV-ONLY**
+- `TEST_JWT_TOKEN` should **only** be set in local development environments
+- **Never** set `TEST_JWT_TOKEN` in staging or production environment variables
+- For production troubleshooting, obtain a token by logging into the real frontend or calling the backend auth endpoint, then paste it temporarily into a local `.env` file on your machine (not into server-side production envs)
 
 **Steps:**
 
@@ -47,10 +52,10 @@ The chat endpoint tests require:
    - Backend should be accessible at `http://localhost:6543/api`
    - Health check: `curl http://localhost:6543/api/health`
 
-3. **Get a JWT token:**
+3. **Get a JWT token (dev only):**
    ```bash
    npm run extract-token
-   # Or manually add TEST_JWT_TOKEN to .env
+   # Or manually add TEST_JWT_TOKEN to .env (local development only)
    ```
 
 4. **Run endpoint tests:**
@@ -137,8 +142,13 @@ curl -X POST http://localhost:3001/api/chat \
 
 **Invalid token:**
 - Error: `401 Unauthorized`
-- Solution: Get fresh token with `npm run extract-token`
+- Solution: Get fresh token with `npm run extract-token` (dev only)
 
 **Token expired:**
 - Error: `Token expired`
-- Solution: Get new token (tokens typically expire after 1 hour)
+- Solution: Get new token (tokens typically expire after 1 hour). Remember: `TEST_JWT_TOKEN` is for local development only.
+
+**Production Testing:**
+- Do not use `TEST_JWT_TOKEN` in production environments
+- For production troubleshooting, use real JWTs obtained from authenticated frontend sessions
+- Tests that require `TEST_JWT_TOKEN` will automatically skip when it's not set (this is expected in production)

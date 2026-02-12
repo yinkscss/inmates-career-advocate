@@ -105,9 +105,10 @@ npm run test:all
 
 ## Notes
 
-- Some tests require `TEST_JWT_TOKEN` in `.env` for full execution
+- Some tests require `TEST_JWT_TOKEN` in `.env` for full execution (dev-only, never set in production)
 - Network-dependent tests may skip if services are unavailable (graceful degradation)
 - Validation tests use heuristics to check requirements (some subjectivity expected)
+- Tests automatically skip when `TEST_JWT_TOKEN` is not set (expected behavior in production)
 
 ## Status
 

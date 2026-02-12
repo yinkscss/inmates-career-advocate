@@ -438,22 +438,25 @@ Created a test script to verify backend API communication. Summary:
    JWT_SECRET=your_jwt_secret_here
    ```
 
-2. Optional — for full testing, add:
+2. Optional — for full testing (dev-only), add:
    ```env
-   TEST_JWT_TOKEN=your_jwt_token_here
+   TEST_JWT_TOKEN=your_jwt_token_here  # DEV ONLY - Never set in production
    TEST_JOB_ID=64abc1234567890abcdef
    ```
+   
+   **IMPORTANT**: `TEST_JWT_TOKEN` is for local development and integration tests only. Never set this in staging or production environment variables. For production troubleshooting, obtain a token from an authenticated frontend session and use it temporarily in a local `.env` file (not in server-side production envs).
 
 3. Run the test:
    ```bash
    npm run test:api
    ```
 
-### Getting a test token
+### Getting a test token (dev-only)
 
 - Log in through your frontend/backend
 - Copy the JWT access token from the response
-- Add it to `.env` as `TEST_JWT_TOKEN`
+- Add it to `.env` as `TEST_JWT_TOKEN` (local development only)
+- **Never** set `TEST_JWT_TOKEN` in staging or production environments
 
 The script will:
 - Show which tests pass/fail

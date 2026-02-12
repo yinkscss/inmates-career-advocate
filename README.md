@@ -149,13 +149,14 @@ This script will:
 1. Ensure your `.env` file has:
    - `BACKEND_API_BASE_URL` - Your backend API URL
    - `JWT_SECRET` - Must match backend JWT secret
-   - `TEST_JWT_TOKEN` (optional) - A valid JWT token for testing
+   - `TEST_JWT_TOKEN` (optional, **dev-only**) - A valid JWT token for local testing
    - `TEST_JOB_ID` (optional) - A valid job ID for testing
 
-2. Get a JWT token:
+2. Get a JWT token (dev only):
    - Log in through the frontend or backend auth endpoint
    - Copy the access token
-   - Add it to `.env` as `TEST_JWT_TOKEN`
+   - Add it to `.env` as `TEST_JWT_TOKEN` (local development only)
+   - **IMPORTANT**: Never set `TEST_JWT_TOKEN` in staging or production environments
 
 ### Testing
 
@@ -164,6 +165,8 @@ This script will:
 ## Environment Variables
 
 See `.env.example` for all available configuration options.
+
+**Important**: `TEST_JWT_TOKEN` is for local development and testing only. Never set this in staging or production environments. See [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment security guidelines.
 
 ## License
 

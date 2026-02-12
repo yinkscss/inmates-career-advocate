@@ -95,7 +95,7 @@ npm run test:conversation
 
 # Requires:
 # - Backend API running
-# - TEST_JWT_TOKEN in .env
+# - TEST_JWT_TOKEN in .env (dev-only, never set in production)
 ```
 
 ## Expected Behavior

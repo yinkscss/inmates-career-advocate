@@ -16,7 +16,12 @@ export async function startServer(): Promise<void> {
   const app: Express = express();
 
   // Security middleware
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginEmbedderPolicy: false,
+    })
+  );
   // CORS configuration
   const allowedOrigins = (process.env.CORS_ORIGINS || config.corsOrigin || '')
     .split(',')

@@ -400,7 +400,7 @@ Job Data
 
 ### Manual Testing
 1. **Backend API**: `npm run test:api`
-   - Requires `TEST_JWT_TOKEN` in `.env`
+   - Requires `TEST_JWT_TOKEN` in `.env` (dev-only, never set in production)
    - Tests connectivity, auth, job retrieval
 
 2. **Query Builder**: `npm run test:query-builder`
@@ -408,7 +408,7 @@ Job Data
    - No backend required
 
 3. **Agent**: `npm run test:agent`
-   - Requires `TEST_JWT_TOKEN` and backend running
+   - Requires `TEST_JWT_TOKEN` (dev-only) and backend running
    - Tests full agent flow
 
 ### Test Scripts Location
