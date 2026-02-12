@@ -20,6 +20,12 @@ export function authMiddleware(
   res: Response,
   next: NextFunction
 ): void {
+  // Skip authentication for OPTIONS requests (CORS preflight)
+  if (req.method === 'OPTIONS') {
+    next();
+    return;
+  }
+
   try {
     const authHeader = req.headers.authorization;
 
