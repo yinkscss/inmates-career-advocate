@@ -42,6 +42,8 @@ export async function startServer(): Promise<void> {
       return callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   }));
 
   // Body parsing

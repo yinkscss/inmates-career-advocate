@@ -23,13 +23,12 @@
 For production deployments, set:
 
 ```
-CORS_ORIGINS=https://inmates.ai,https://www.inmates.ai,http://localhost:3000
+CORS_ORIGINS=https://inmates.ai,https://www.inmates.ai
 ```
 
 This allows:
 - Production frontend (`https://inmates.ai`)
 - Production frontend with www (`https://www.inmates.ai`)
-- Local development (`http://localhost:3000`)
 
 ## Security Checklist
 
