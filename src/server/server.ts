@@ -28,6 +28,11 @@ export async function startServer(): Promise<void> {
     .map(origin => origin.trim())
     .filter(Boolean);
 
+  // Log CORS configuration for debugging
+  console.log(`🔒 CORS Configuration:`);
+  console.log(`   CORS_ORIGINS env: ${process.env.CORS_ORIGINS || 'not set'}`);
+  console.log(`   Allowed origins: ${allowedOrigins.join(', ') || 'none'}`);
+
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests without Origin header (e.g. server-to-server, curl)
@@ -39,6 +44,8 @@ export async function startServer(): Promise<void> {
         return callback(null, true);
       }
 
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
       return callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
