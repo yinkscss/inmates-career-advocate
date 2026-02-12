@@ -22,16 +22,16 @@ export async function startServer(): Promise<void> {
       crossOriginEmbedderPolicy: false,
     })
   );
-  // CORS configuration
-  const allowedOrigins = (process.env.CORS_ORIGINS || config.corsOrigin || '')
-    .split(',')
-    .map(origin => origin.trim())
-    .filter(Boolean);
+  // CORS configuration (hardcoded origins)
+  const allowedOrigins = [
+    'https://inmates.ai',
+    'https://www.inmates.ai',
+    'http://localhost:3000',
+  ];
 
   // Log CORS configuration for debugging
-  console.log(`🔒 CORS Configuration:`);
-  console.log(`   CORS_ORIGINS env: ${process.env.CORS_ORIGINS || 'not set'}`);
-  console.log(`   Allowed origins: ${allowedOrigins.join(', ') || 'none'}`);
+  console.log('🔒 CORS Configuration (hardcoded):');
+  console.log(`   Allowed origins: ${allowedOrigins.join(', ')}`);
 
   app.use(cors({
     origin: (origin, callback) => {
