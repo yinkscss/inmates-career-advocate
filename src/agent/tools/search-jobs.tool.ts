@@ -7,7 +7,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { jobsApiClient } from '../../api/jobs-api.js';
 import { buildQueryFromMessage, buildQueryFromFilters } from '../../utils/query-builder.js';
-import { GetJobsQueryDto, WorkMode } from '../../types/query.types.js';
+import { GetJobsQueryDto } from '../../types/query.types.js';
 import { normalizeWorkMode, normalizeJobType, normalizeExperienceLevel } from '../../utils/enum-normalizer.js';
 import type { AgentOptions } from '../job-discovery-agent.js';
 
@@ -323,7 +323,7 @@ Always use this tool to retrieve job data. Never make up or hallucinate job list
             
             // Create a broadened query without this filter
             const broadenedQuery = { ...query };
-            delete broadenedQuery[strategy.filter];
+            delete broadenedQuery[strategy.filter as keyof GetJobsQueryDto];
             
             if (process.env.NODE_ENV === 'development') {
               console.log(`[TOOL DEBUG] No results found. Trying without ${strategy.name}...`);

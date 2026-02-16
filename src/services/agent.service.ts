@@ -463,28 +463,6 @@ export class AgentService {
   }
   
   /**
-   * Deduplicate jobs based on content (title, company, description)
-   * DEPRECATED: User wants all jobs displayed, keeping for reference only
-   * Use deduplicateJobsByIdOnly instead
-   */
-  private deduplicateJobs(jobs: JobListing[]): JobListing[] {
-    const seen = new Map<string, JobListing>();
-    
-    for (const job of jobs) {
-      // Create a content-based key (title + company + first 100 chars of description)
-      const descriptionPreview = job.description.substring(0, 100).trim();
-      const key = `${job.title.toLowerCase()}|${job.company.toLowerCase()}|${descriptionPreview}`;
-      
-      // Only keep the first occurrence
-      if (!seen.has(key)) {
-        seen.set(key, job);
-      }
-    }
-    
-    return Array.from(seen.values());
-  }
-
-  /**
    * Map tool response job data to JobListing format
    */
   private mapJobDataToJobListing(jobData: unknown, isDetailed = false): JobListing {

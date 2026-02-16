@@ -23,7 +23,7 @@ export function normalizeWorkMode(value: string | null | undefined): WorkMode | 
     case 'onsite':
     case 'office':
     case 'on site':
-      return WorkMode.ON_SITE;
+      return WorkMode.ONSITE;
     case 'hybrid':
       return WorkMode.HYBRID;
     default:
