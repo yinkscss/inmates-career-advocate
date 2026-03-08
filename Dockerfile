@@ -10,8 +10,7 @@ ENV NODE_ENV=production
 COPY . .
 # Limit Node heap during build to avoid OOM kill on low-RAM servers (e.g. CapRover).
 # Increase if build fails with "JavaScript heap out of memory"; add swap on server if needed.
-ENV NODE_OPTIONS=--max_old_space_size=2048
-RUN npm run build || (echo 'Build failed!' && exit 1)
+RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build || (echo 'Build failed!' && exit 1)
 RUN ls -la dist || (echo 'dist folder not found!' && exit 1)
 RUN test -f dist/index.js || (echo 'dist/index.js not found!' && exit 1)
 
