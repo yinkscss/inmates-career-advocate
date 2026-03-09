@@ -28,6 +28,18 @@ function getEnvVar(name: string, defaultValue?: string): string {
   return value || defaultValue || '';
 }
 
+/** Parse CORS_ORIGINS string: comma-separated, strip inline # comments and empty entries */
+function parseCorsOrigins(value: string): string[] {
+  return value
+    .split(',')
+    .map((part) => {
+      const commentIndex = part.indexOf('#');
+      const origin = (commentIndex >= 0 ? part.slice(0, commentIndex) : part).trim();
+      return origin;
+    })
+    .filter((origin) => origin.length > 0);
+}
+
 export const config: AppConfig = {
   port: parseInt(getEnvVar('PORT', '3001'), 10),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
@@ -38,12 +50,10 @@ export const config: AppConfig = {
   agentTemperature: parseFloat(getEnvVar('AGENT_TEMPERATURE', '0.1')),
   maxIterations: parseInt(getEnvVar('MAX_ITERATIONS', '10'), 10),
   maxHistoryMessages: parseInt(getEnvVar('MAX_HISTORY_MESSAGES', '12'), 10),
-  corsOrigins: getEnvVar(
-    // Support both CORS_ORIGINS (comma-separated) and legacy CORS_ORIGIN
-    'CORS_ORIGINS',
-    getEnvVar('CORS_ORIGIN', 'http://localhost:3000')
-  )
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter((origin) => origin.length > 0),
+  corsOrigins: parseCorsOrigins(
+    getEnvVar(
+      'CORS_ORIGINS',
+      getEnvVar('CORS_ORIGIN', 'http://localhost:3000')
+    )
+  ),
 };

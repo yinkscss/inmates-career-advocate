@@ -62,6 +62,9 @@ export async function startServer(): Promise<void> {
   // Request logging (before routes)
   app.use(loggerMiddleware);
 
+  // Explicit preflight for /api/chat so CORS headers are always sent (e.g. behind proxies)
+  app.options('/api/chat', cors(corsOptions), (_req, res) => res.sendStatus(204));
+
   // Routes
   app.use('/api/chat', authMiddleware, chatRoutes);
   app.use('/api/health', healthRoutes);
