@@ -33,7 +33,7 @@ export async function startServer(): Promise<void> {
   console.log('🔒 CORS Configuration (hardcoded):');
   console.log(`   Allowed origins: ${allowedOrigins.join(', ')}`);
 
-  app.use(cors({
+  const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       // Allow requests without Origin header (e.g. server-to-server, curl)
       if (!origin) {
@@ -51,7 +51,13 @@ export async function startServer(): Promise<void> {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  }));
+  };
+
+  // Apply CORS to all routes
+  app.use(cors(corsOptions));
+
+  // Explicitly handle CORS preflight for all routes (including /api/chat)
+  app.options('*', cors(corsOptions));
 
   // Body parsing
   app.use(express.json());
