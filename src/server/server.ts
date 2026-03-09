@@ -22,15 +22,11 @@ export async function startServer(): Promise<void> {
       crossOriginEmbedderPolicy: false,
     })
   );
-  // CORS configuration (hardcoded origins)
-  const allowedOrigins = [
-    'https://inmates.ai',
-    'https://www.inmates.ai',
-    'http://localhost:3000',
-  ];
+  // CORS configuration (driven by environment)
+  const allowedOrigins = config.corsOrigins;
 
   // Log CORS configuration for debugging
-  console.log('🔒 CORS Configuration (hardcoded):');
+  console.log('🔒 CORS Configuration:');
   console.log(`   Allowed origins: ${allowedOrigins.join(', ')}`);
 
   const corsOptions: cors.CorsOptions = {

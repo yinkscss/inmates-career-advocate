@@ -17,7 +17,7 @@ interface AppConfig {
   agentTemperature: number;
   maxIterations: number;
   maxHistoryMessages: number;
-  corsOrigin: string;
+  corsOrigins: string[];
 }
 
 function getEnvVar(name: string, defaultValue?: string): string {
@@ -38,5 +38,12 @@ export const config: AppConfig = {
   agentTemperature: parseFloat(getEnvVar('AGENT_TEMPERATURE', '0.1')),
   maxIterations: parseInt(getEnvVar('MAX_ITERATIONS', '10'), 10),
   maxHistoryMessages: parseInt(getEnvVar('MAX_HISTORY_MESSAGES', '12'), 10),
-  corsOrigin: getEnvVar('CORS_ORIGIN', 'http://localhost:3000'),
+  corsOrigins: getEnvVar(
+    // Support both CORS_ORIGINS (comma-separated) and legacy CORS_ORIGIN
+    'CORS_ORIGINS',
+    getEnvVar('CORS_ORIGIN', 'http://localhost:3000')
+  )
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0),
 };
