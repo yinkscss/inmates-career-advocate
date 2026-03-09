@@ -2,8 +2,7 @@
  * Express Server Setup
  */
 
-import express, { Express } from 'express';
-import cors from 'cors';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { config } from '../config/config.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
@@ -12,48 +11,51 @@ import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 
+const CORS_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
+const CORS_HEADERS = 'Content-Type, Authorization, Accept';
+
+/** Set CORS headers on res if origin is allowed. Returns true if origin was allowed. */
+function setCorsHeaders(origin: string | undefined, allowedOrigins: string[], res: Response): boolean {
+  if (!origin) return true;
+  if (!allowedOrigins.includes(origin)) return false;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', CORS_METHODS);
+  res.setHeader('Access-Control-Allow-Headers', CORS_HEADERS);
+  res.setHeader('Access-Control-Max-Age', '86400');
+  return true;
+}
+
 export async function startServer(): Promise<void> {
   const app: Express = express();
+  const allowedOrigins = config.corsOrigins;
 
-  // Security middleware
+  console.log('🔒 CORS Configuration:');
+  console.log(`   Allowed origins: ${allowedOrigins.join(', ')}`);
+
+  // 1) CORS first, before anything else (so proxy/helmet cannot strip headers)
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    const allowed = setCorsHeaders(origin, allowedOrigins, res);
+    if (req.method === 'OPTIONS') {
+      if (allowed) return res.sendStatus(204);
+      return res.sendStatus(403);
+    }
+    if (!origin) return next();
+    if (!allowed) {
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
+      return res.status(403).json({ error: 'Not allowed by CORS' });
+    }
+    next();
+  });
+
+  // Security middleware (after CORS so it doesn't override our headers)
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
       crossOriginEmbedderPolicy: false,
     })
   );
-  // CORS configuration (driven by environment)
-  const allowedOrigins = config.corsOrigins;
-
-  // Log CORS configuration for debugging
-  console.log('🔒 CORS Configuration:');
-  console.log(`   Allowed origins: ${allowedOrigins.join(', ')}`);
-
-  const corsOptions: cors.CorsOptions = {
-    origin: (origin, callback) => {
-      // Allow requests without Origin header (e.g. server-to-server, curl)
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      console.warn(`⚠️  CORS blocked origin: ${origin}`);
-      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
-      return callback(new Error('Not allowed by CORS'), false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  };
-
-  // Apply CORS to all routes
-  app.use(cors(corsOptions));
-
-  // Explicitly handle CORS preflight for all routes (including /api/chat)
-  app.options('*', cors(corsOptions));
 
   // Body parsing
   app.use(express.json());
@@ -61,9 +63,6 @@ export async function startServer(): Promise<void> {
 
   // Request logging (before routes)
   app.use(loggerMiddleware);
-
-  // Explicit preflight for /api/chat so CORS headers are always sent (e.g. behind proxies)
-  app.options('/api/chat', cors(corsOptions), (_req, res) => res.sendStatus(204));
 
   // Routes
   app.use('/api/chat', authMiddleware, chatRoutes);
