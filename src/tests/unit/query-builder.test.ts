@@ -214,9 +214,14 @@ async function testDeterministicQueries() {
       buildQueryFromMessage(testInput),
     ]);
 
-    // Check if all results are the same
-    const firstResult = JSON.stringify(results[0]);
-    const allSame = results.every((result) => JSON.stringify(result) === firstResult);
+    // Check if all results are the same (excluding startDate which varies by milliseconds)
+    const stripStartDate = (result: any) => {
+      const { startDate, ...rest } = result;
+      return JSON.stringify(rest);
+    };
+    
+    const firstResult = stripStartDate(results[0]);
+    const allSame = results.every((result) => stripStartDate(result) === firstResult);
 
     if (allSame) {
       console.log('   ✅ Same input produces same output (deterministic)');

@@ -10,6 +10,7 @@ import { loggerMiddleware } from './middleware/logger.middleware.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
+import { resumeRoutes } from './routes/resume.routes.js';
 
 const CORS_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 const CORS_HEADERS = 'Content-Type, Authorization, Accept';
@@ -66,6 +67,7 @@ export async function startServer(): Promise<void> {
 
   // Routes
   app.use('/api/chat', authMiddleware, chatRoutes);
+  app.use('/api/resume', authMiddleware, resumeRoutes);
   app.use('/api/health', healthRoutes);
 
   // Error handling (must be last)

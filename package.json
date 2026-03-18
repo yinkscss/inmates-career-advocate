@@ -21,6 +21,7 @@
     "test:unit:query": "tsx src/tests/unit/query-builder.test.ts",
     "test:unit:api": "tsx src/tests/unit/api-client.test.ts",
     "test:integration": "tsx src/tests/integration/agent-validation.test.ts",
+    "test:resume": "tsx src/tests/integration/resume-build.test.ts",
     "test:conversation": "tsx src/tests/integration/conversational-history.test.ts",
     "test:all": "tsx src/tests/run-all-tests.ts",
     "extract-token": "tsx src/extract-token.ts"
@@ -36,6 +37,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.0",
+    "pdf-lib": "^1.17.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {

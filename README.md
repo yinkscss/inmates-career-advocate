@@ -109,6 +109,40 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
+### POST /api/resume/build
+
+Builds a resume PDF from structured resume content.
+
+**Auth requirement:**
+- Requires `Authorization: Bearer <jwt_token>`
+- Endpoint is protected by JWT auth middleware (same auth flow as `/api/chat`)
+
+**Request headers:**
+```
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+Accept: application/pdf
+```
+
+**Request payload summary:**
+- `personalInfo` (required): `firstName`, `lastName`, `email`, optional `phone`, `location`, `headline`
+- `summary` or `objective` (at least one required)
+- `experience` (required, min 1): role/company/date range, optional highlights
+- `education` (required, min 1)
+- `skills` (required, min 1)
+- Optional arrays: `certifications`, `projects`, `links` (if provided, each must include at least one item)
+- Unknown fields are rejected at all payload levels (strict schema validation)
+
+**Success response (binary PDF):**
+- Status: `200 OK`
+- Body: raw binary PDF bytes (not JSON)
+- Key response headers:
+  - `Content-Type: application/pdf`
+  - `Content-Disposition: attachment; filename="<generated-or-default>.pdf"`
+
+**Validation/auth error response:**
+- Returns JSON errors (for example `400` validation failure, `401` auth failure)
+
 ### GET /api/health
 
 Health check endpoint.
@@ -159,8 +193,8 @@ This script will:
    - **IMPORTANT**: Never set `TEST_JWT_TOKEN` in staging or production environments
 
 ### Testing
-
-(Unit and integration tests to be added in Phase 6)
+- Resume endpoint integration tests: `npm run test:resume`
+- Full test suite: `npm run test:all`
 
 ## Environment Variables
 

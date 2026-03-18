@@ -7,6 +7,7 @@ import { runQueryBuilderTests } from './unit/query-builder.test.js';
 import { runApiClientTests } from './unit/api-client.test.js';
 import { runAgentServiceTests } from './unit/agent-service.test.js';
 import { runValidationTests } from './integration/agent-validation.test.js';
+import { runResumeBuildTests } from './integration/resume-build.test.js';
 
 async function runAllTests() {
   console.log('🧪 Complete Test Suite\n');
@@ -19,17 +20,20 @@ async function runAllTests() {
   const apiClientResults = await runApiClientTests();
   const agentServiceResults = await runAgentServiceTests();
   const validationResults = await runValidationTests();
+  const resumeBuildResults = await runResumeBuildTests();
 
   const totalPassed =
     queryBuilderResults.passed +
     apiClientResults.passed +
     agentServiceResults.passed +
-    validationResults.passed;
+    validationResults.passed +
+    resumeBuildResults.passed;
   const totalFailed =
     queryBuilderResults.failed +
     apiClientResults.failed +
     agentServiceResults.failed +
-    validationResults.failed;
+    validationResults.failed +
+    resumeBuildResults.failed;
 
   console.log('='.repeat(60));
   console.log('📊 Complete Test Summary');
