@@ -27,7 +27,7 @@ export class ResumeService {
 
     try {
       const content = await resumeContentService.generateResumeContent(request);
-      const renderedPdf = await resumePdfService.renderResumePdf(content);
+      const renderedPdf = await resumePdfService.renderResumePdf(content, request.template ?? 'classic');
 
       return {
         statusCode: RESUME_BUILD_RESPONSE_STATUS_CODE,

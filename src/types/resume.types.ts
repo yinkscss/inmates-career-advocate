@@ -68,6 +68,9 @@ export const ResumeLinkItemSchema = z
   })
   .strict();
 
+export const RESUME_TEMPLATES = ['classic', 'modern', 'executive'] as const;
+export type ResumeTemplate = (typeof RESUME_TEMPLATES)[number];
+
 export const ResumeBuildRequestSchema = z
   .object({
     personalInfo: ResumePersonalInfoSchema,
@@ -82,6 +85,7 @@ export const ResumeBuildRequestSchema = z
       .optional(),
     projects: z.array(ResumeProjectItemSchema).min(1, 'Projects must include at least one entry when provided').optional(),
     links: z.array(ResumeLinkItemSchema).min(1, 'Links must include at least one entry when provided').optional(),
+    template: z.enum(RESUME_TEMPLATES).default('classic'),
   })
   .strict()
   .refine((payload) => Boolean(payload.summary || payload.objective), {
