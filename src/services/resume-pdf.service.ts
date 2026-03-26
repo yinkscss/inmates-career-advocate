@@ -41,9 +41,30 @@ function buildFilename(content: ResumeTemplateModel): string {
   return `${sanitized}.pdf`;
 }
 
+const WINANSI_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/[\u2018\u2019\u201A]/g, "'"],
+  [/[\u201C\u201D\u201E]/g, '"'],
+  [/\u2026/g, '...'],
+  [/[\u25B8\u25B9\u25BA\u25BB\u2023]/g, '\u2022'],
+  [/[\u2713\u2714\u2715\u2716]/g, '*'],
+  [/[\u2605\u2606]/g, '*'],
+  [/[\u25CF\u25CB\u25A0\u25A1\u25C6\u25C7]/g, '\u2022'],
+  [/[\u2192\u2794\u27A4\u279C]/g, '-'],
+];
+
+function sanitizeForPdf(text: string): string {
+  let result = text;
+  for (const [pattern, replacement] of WINANSI_REPLACEMENTS) {
+    result = result.replace(pattern, replacement);
+  }
+  // eslint-disable-next-line no-control-regex
+  return result.replace(/[^\x00-\xFF]/g, '');
+}
+
 function wrapText(text: string, maxChars: number): string[] {
-  if (maxChars <= 0) return [text];
-  const words = text.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  const safe = sanitizeForPdf(text);
+  if (maxChars <= 0) return [safe];
+  const words = safe.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
   if (!words.length) return [];
   const lines: string[] = [];
   let current = words[0];
@@ -58,7 +79,7 @@ function wrapText(text: string, maxChars: number): string[] {
 }
 
 function metaLine(values: Array<string | undefined>): string {
-  return values.map(v => v?.trim()).filter((v): v is string => Boolean(v)).join('  ·  ');
+  return values.map(v => v?.trim()).filter((v): v is string => Boolean(v)).join('  \u00B7  ');
 }
 
 // ─── Template 1: Classic ───────────────────────────────────────────────────────
@@ -358,7 +379,7 @@ async function renderModern(content: ResumeTemplateModel): Promise<Uint8Array> {
     cur.page.drawText(`${exp.company}${exp.location ? `  ·  ${exp.location}` : ''}`, { x: MAIN_X, y: cur.y, size: 8.5, font: fonts.italic!, color: C.mainAccent });
     cur = { ...cur, y: cur.y - 12 };
     if (exp.summary) cur = drawMainLines(cur, wrapText(exp.summary, maxCharsMain), MAIN_X, 9, fonts.regular);
-    for (const h of exp.highlights) cur = drawMainLines(cur, wrapText(`▸ ${h}`, maxCharsMain - 3), MAIN_X + 8, 9, fonts.regular);
+    for (const h of exp.highlights) cur = drawMainLines(cur, wrapText(`\u2022 ${h}`, maxCharsMain - 3), MAIN_X + 8, 9, fonts.regular);
     cur = { ...cur, y: cur.y - 8 };
   }
 
@@ -575,23 +596,81 @@ async function renderExecutive(content: ResumeTemplateModel): Promise<Uint8Array
   return pdf.save();
 }
 
+// ─── Content sanitizer (WinAnsi safety) ─────────────────────────────────────
+
+function sanitizeString(s: string): string { return sanitizeForPdf(s); }
+function sanitizeOptional(s: string | undefined): string | undefined { return s ? sanitizeForPdf(s) : s; }
+
+function sanitizeContent(c: ResumeTemplateModel): ResumeTemplateModel {
+  return {
+    personalInfo: {
+      fullName: sanitizeString(c.personalInfo.fullName),
+      email: sanitizeString(c.personalInfo.email),
+      phone: sanitizeOptional(c.personalInfo.phone),
+      location: sanitizeOptional(c.personalInfo.location),
+      headline: sanitizeOptional(c.personalInfo.headline),
+      links: c.personalInfo.links.map(l => ({ ...l, label: sanitizeString(l.label) })),
+    },
+    profile: {
+      summary: sanitizeString(c.profile.summary),
+      objective: sanitizeOptional(c.profile.objective),
+    },
+    experience: c.experience.map(e => ({
+      ...e,
+      position: sanitizeString(e.position),
+      company: sanitizeString(e.company),
+      location: sanitizeOptional(e.location),
+      dateRange: sanitizeString(e.dateRange),
+      summary: sanitizeOptional(e.summary),
+      highlights: e.highlights.map(sanitizeString),
+    })),
+    education: c.education.map(e => ({
+      ...e,
+      institution: sanitizeString(e.institution),
+      degree: sanitizeString(e.degree),
+      fieldOfStudy: sanitizeOptional(e.fieldOfStudy),
+      dateRange: sanitizeOptional(e.dateRange),
+      location: sanitizeOptional(e.location),
+      details: sanitizeOptional(e.details),
+    })),
+    skills: c.skills.map(sanitizeString),
+    certifications: c.certifications.map(cert => ({
+      ...cert,
+      name: sanitizeString(cert.name),
+      issuer: sanitizeString(cert.issuer),
+      issueDate: sanitizeOptional(cert.issueDate),
+      expirationDate: sanitizeOptional(cert.expirationDate),
+      credentialId: sanitizeOptional(cert.credentialId),
+    })),
+    projects: c.projects.map(p => ({
+      ...p,
+      name: sanitizeString(p.name),
+      description: sanitizeString(p.description),
+      role: sanitizeOptional(p.role),
+      technologies: p.technologies.map(sanitizeString),
+      dateRange: sanitizeOptional(p.dateRange),
+    })),
+  };
+}
+
 // ─── Service ───────────────────────────────────────────────────────────────────
 
 export class ResumePdfService {
   async renderResumePdf(content: ResumeTemplateModel, template: ResumeTemplate = 'classic'): Promise<RenderedResumePdf> {
     try {
-      const filename = buildFilename(content);
+      const safe = sanitizeContent(content);
+      const filename = buildFilename(safe);
       let body: Uint8Array;
 
       switch (template) {
         case 'modern':
-          body = await renderModern(content);
+          body = await renderModern(safe);
           break;
         case 'executive':
-          body = await renderExecutive(content);
+          body = await renderExecutive(safe);
           break;
         default:
-          body = await renderClassic(content);
+          body = await renderClassic(safe);
       }
 
       return { filename, body };
