@@ -597,7 +597,9 @@ export class ResumePdfService {
       return { filename, body };
     } catch (error) {
       if (error instanceof ResumePdfRenderError) throw error;
-      throw new ResumePdfRenderError('Failed to render resume PDF', { cause: error });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[PDF Render ${template}] Error:`, errorMessage, error instanceof Error ? error.stack : '');
+      throw new ResumePdfRenderError(`Failed to render resume PDF (${template}): ${errorMessage}`, { cause: error });
     }
   }
 }
