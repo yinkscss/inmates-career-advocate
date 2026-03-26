@@ -1,10 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import type {
-  ResumeTemplateCertificationItem,
-  ResumeTemplateEducationItem,
-  ResumeTemplateExperienceItem,
   ResumeTemplateModel,
-  ResumeTemplateProjectItem,
 } from '../types/resume.types.js';
 import type { ResumeTemplate } from '../types/resume.types.js';
 
@@ -326,7 +322,7 @@ async function renderModern(content: ResumeTemplateModel): Promise<Uint8Array> {
   page1.drawText('SKILLS', { x: SIDE_MX, y: sy, size: 7.5, font: fonts.bold, color: C.sidebarAccent }); sy -= 14;
   for (const skill of content.skills) {
     if (sy < MB + 10) break;
-    page1.drawRectangle({ x: SIDE_MX, y: sy - 2, width: SIDE_W, height: 13, color: rgb(0.16, 0.19, 0.26), borderRadius: 2 });
+    page1.drawRectangle({ x: SIDE_MX, y: sy - 2, width: SIDE_W, height: 13, color: rgb(0.16, 0.19, 0.26) });
     page1.drawText(skill, { x: SIDE_MX + 6, y: sy, size: 8, font: fonts.regular, color: C.sidebarText }); sy -= 17;
   }
 
@@ -540,7 +536,7 @@ async function renderExecutive(content: ResumeTemplateModel): Promise<Uint8Array
     if (sx + sw > PAGE_W - MX) { sx = MX; skillRow++; }
     const rowY = skillY - skillRow * 18;
     cur = guard({ page: cur.page, y: rowY }, 18);
-    cur.page.drawRectangle({ x: sx, y: rowY - 3, width: sw, height: 14, color: rgb(0.94, 0.95, 0.97), borderRadius: 3 });
+    cur.page.drawRectangle({ x: sx, y: rowY - 3, width: sw, height: 14, color: rgb(0.94, 0.95, 0.97) });
     cur.page.drawText(skill, { x: sx + 8, y: rowY, size: 8.5, font: fonts.regular, color: C.bodyText });
     sx += sw + 6;
   }

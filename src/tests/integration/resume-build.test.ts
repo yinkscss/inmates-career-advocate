@@ -47,6 +47,7 @@ function buildValidPayload(): ResumeBuildRequest {
       },
     ],
     skills: ['TypeScript', 'Node.js', 'PostgreSQL'],
+    template: 'classic',
   };
 }
 
